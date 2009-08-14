@@ -1,0 +1,4 @@
+Creates dummy directories and dummy files.
+
+Requirement:
+  python-yaml package

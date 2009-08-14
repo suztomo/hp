@@ -75,6 +75,14 @@ asmlinkage long (*original_sys_ioctl) (unsigned int fd, unsigned int cmd,
     }                                                           \
   } while(0);
 
+/*
+  Replaces filename with dummy one if the filename matches HOMEDIR_PREFIX.
+
+  | newpath
+  | - 8 - | filename
+  |        /home/suzuki/tako.txt
+  |/j/00012/home/suzuki/tako.txt
+*/
 
 char *replace_path_if_necessary(char *filename)
 {
@@ -97,7 +105,7 @@ char *replace_path_if_necessary(char *filename)
     get_user(current->hp_buf[i], filename - BACKUP_LEN + i);
   }
 
-  snprintf(tmp_buf, 12, "/j/%05ld", current->hp_node);
+  snprintf(tmp_buf, 12, "/j/%05ld", current->hp_node); // 12?
   for (i=0; i<BACKUP_LEN; ++i) {
     put_user(tmp_buf[i], filename - BACKUP_LEN + i);
   }
@@ -227,17 +235,10 @@ asmlinkage int sys_open_wrapper(char *path, int flags, int mode)
   int ret;
   char *new_path;
 
-  /* test */
-  printk("*** Opened file by %d on %ld %s: %s\n", current->pid,
-         current->hp_node, current->comm, path);
-  return original_sys_open(path, flags, mode);
-
-
-
   if (current->hp_node <= 0) {
+    /* Do nothing if it is not one of target processes */
     return original_sys_open(path, flags, mode);
   }
-
 
   new_path = replace_path_if_necessary(path);
   if (new_path == NULL) {
@@ -333,14 +334,14 @@ int replace_syscalls(void)
    */
 
   ADD_HOOK_SYS(open);
-  /*
+
   ADD_HOOK_SYS(chdir);
   ADD_HOOK_SYS(stat);
   ADD_HOOK_SYS(stat64);
   ADD_HOOK_SYS(lstat64);
   ADD_HOOK_SYS(unlink);
-  ADD_HOOK_SYS(ioctl);
-  */
+  //  ADD_HOOK_SYS(ioctl);
+
   return 0;
 }
 
@@ -348,13 +349,13 @@ int restore_syscalls(void)
 {
 
   CLEANUP_SYSCALL(open);
-  /*
+
   CLEANUP_SYSCALL(chdir);
   CLEANUP_SYSCALL(stat);
   CLEANUP_SYSCALL(stat64);
   CLEANUP_SYSCALL(lstat64);
   CLEANUP_SYSCALL(unlink);
   CLEANUP_SYSCALL(ioctl);
-  */
+
   return 0;
 }
