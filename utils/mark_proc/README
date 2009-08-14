@@ -1,0 +1,9 @@
+Marks target process with hp_node, specifying these pids.
+
+Usage:
+  make    # compile
+  ps alxf # find target process id.
+  sudo insmod mark_proc.ko pid_array=10971,10890,10898 node_array=1,2,3
+  dmesg   # check the output message
+
+
