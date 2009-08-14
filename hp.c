@@ -23,7 +23,7 @@
 #include <linux/sched.h>
 #include <asm/uaccess.h>
 
-#include "paths.h"
+#include "syscalls/paths.h"
 
 MODULE_LICENSE("GPL");
 
@@ -33,7 +33,10 @@ MODULE_LICENSE("GPL");
  */
 int init_module()
 {
-  replace_syscalls();
+  if (replace_syscalls()) {
+    printk(KERN_ALERT "System calls replace failed.\n");
+    return -1;
+  };
   printk(KERN_ALERT "Hello, Kernel!\n");
 
   return 0;
@@ -44,6 +47,10 @@ int init_module()
  */
 void cleanup_module()
 {
+  if (restore_syscalls()) {
+    printk(KERN_ALERT "Systemcall restore failed.\n");
+    return -1;
+  }
   printk(KERN_ALERT "Goodbye, Kernel!\n");
   return;
 }
