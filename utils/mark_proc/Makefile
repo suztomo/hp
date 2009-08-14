@@ -13,5 +13,8 @@ check-syntax:
 #install:
 #	sudo insmod $(TARGET).ko pid_array=`pgrep sshd` node_array=1
 
+install:
+	./run.sh
+
 uninstall:
 	sudo rmmod $(TARGET)
