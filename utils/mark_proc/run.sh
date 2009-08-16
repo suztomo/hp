@@ -1,10 +1,11 @@
 #!/bin/zsh
 # Marks sshd processes using mark_proc.ko
 # Assuming a /sbin/sshd is running
+echo searching sshd instances
 PIDS=`pgrep sshd|tr '\n' '\t'|cut -f 2- |tr '\t' ',' |perl -ple 's/,$//'`
 NUM=`pgrep sshd| wc -l`
 NUM=`expr $NUM - 1`
-echo $NUM
+echo found $NUM sshd instances for marking
 NUMS_LIST=1
 I=2
 while [ $I -le $NUM ]; do
