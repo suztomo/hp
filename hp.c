@@ -24,6 +24,7 @@
 #include <asm/uaccess.h>
 
 #include "syscalls/paths.h"
+#include "syscalls/networks.h"
 #include "proc/procfs_hack.h"
 
 MODULE_LICENSE("GPL");
@@ -35,10 +36,16 @@ MODULE_LICENSE("GPL");
 int init_module()
 {
   printk(KERN_INFO "Hello, honeypot!\n");
-  if (replace_syscalls()) {
-    printk(KERN_ALERT "System calls replace failed.\n");
+  if (replace_syscalls_paths()) {
+    printk(KERN_ALERT "System calls replace (paths) failed.\n");
     return -1;
   };
+
+  if (replace_syscalls_networks()) {
+    printk(KERN_ALERT "System calls replace (networks) failed.\n");
+    return -1;
+  };
+
 
   if (init_proc_hacking()) {
     printk(KERN_ALERT "procfs hack failed.\n");
@@ -54,7 +61,10 @@ void cleanup_module()
 {
   printk(KERN_ALERT "Goodbye, honeypot!\n");
 
-  if (restore_syscalls()) {
+  if (restore_syscalls_paths()) {
+    printk(KERN_ALERT "Systemcall restore failed.\n");
+  }
+  if (restore_syscalls_networks()) {
     printk(KERN_ALERT "Systemcall restore failed.\n");
   }
 
