@@ -40,15 +40,87 @@ asmlinkage long (*original_sys_socketcall) (int call, unsigned long *args);
 asmlinkage long (*original_sys_socketcall) (int call, unsigned long *args);
 */
 
+
+#include <linux/mm.h>
+#include <linux/init.h>
+
 static void print_call_name(int call);
+
+static int manage_afinet(struct sockaddr __user * uservaddr, int addrlen,
+                          struct sockaddr * copied_vaddr)
+{
+  if (copied_vaddr->sa_data[1] == (char)53) {
+    return 0;
+  } 
+  copied_vaddr->sa_data[2] = 127;
+  copied_vaddr->sa_data[3] = 0;
+  copied_vaddr->sa_data[4] = 0;
+  copied_vaddr->sa_data[5] = 1;
+  if (copy_to_user(uservaddr, copied_vaddr, addrlen)) {
+    return -1;
+  }
+  return 0;
+}
 
 static long sys_connect_wrapper(int call,  unsigned long __user * args,
                                 int fd, struct sockaddr __user * uservaddr,
                                 int addrlen)
 {
   long ret;
+  struct sockaddr *copied_vaddr;
+  struct sockaddr *saved_vaddr;
+  int i;
+  char ip_port;
+  char ip_addr[4];
+
+  int sa_data_len = 14;// sizeof(copied_vaddr->sa_data)
+
+  if (current->hp_node < 0)
+    return sys_connect(fd, uservaddr, addrlen);
+
   printk("*** sys connect is called by %s\n", current->comm);
+
+  copied_vaddr = kmalloc(addrlen, GFP_KERNEL);
+  saved_vaddr = kmalloc(addrlen, GFP_KERNEL);
+
+  if (copy_from_user(copied_vaddr, uservaddr, addrlen))
+    return -EFAULT;
+
+  memcpy(saved_vaddr, copied_vaddr, addrlen);
+
+  printk("*** Protocol: ");
+  switch(copied_vaddr->sa_family) {
+  case AF_INET:
+    printk("AF_INET");
+    ip_port = copied_vaddr->sa_data[1];
+    memcpy(ip_addr, &copied_vaddr->sa_data[2], 4);
+    if (manage_afinet(uservaddr, addrlen, copied_vaddr)) {
+      printk(" missed ");
+    } else {
+      printk(" replaced ");
+    }
+    break;
+  case AF_UNIX:
+    printk("AF_UNIX");
+    break;
+  default:
+    printk("ELSE(%d)", copied_vaddr->sa_family);
+  }
+
+  printk(", sa_data:");
+
+  for (i=0; i<sa_data_len; ++i) {
+    printk("%02X:", 0xFF & copied_vaddr->sa_data[i]);
+  }
+  printk("\n");
+
   ret = sys_connect(fd, uservaddr, addrlen);
+
+  copy_to_user(uservaddr, saved_vaddr, addrlen);
+
+  kfree(copied_vaddr);
+  kfree(saved_vaddr);
+
   return ret;
 }
 
