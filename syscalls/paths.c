@@ -19,12 +19,6 @@
 
 
 /*
-  The system call table.
-  The kernel should be modified as EXPORT_SYMBOL(sys_call_table)
- */
-extern void *sys_call_table[];
-
-/*
   original calls. the system calls are stored to these variables.
  */
 asmlinkage long (*original_sys_open) (const char *, int, int);
