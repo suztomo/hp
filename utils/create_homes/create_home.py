@@ -10,7 +10,7 @@ from shutil import copyfile
 
 HOME_DIR_PATH='/j'
 HOME_DIR_ENTRY_NAME='home_dirs'
-
+STRUCTURE_FILE='../structure.yaml'
 
 def create_file(parent_dir, filename, filepath):
     print("copying %s to %s/%s" % (filepath, parent_dir, filename));
@@ -39,7 +39,7 @@ def create_dir(parent_dir, target_dir, next):
 
 
 def main():
-    text = open('structure.yaml').read()
+    text = open(STRUCTURE_FILE).read()
     data = yaml.load(text)
     if not HOME_DIR_ENTRY_NAME in data:
         exit()

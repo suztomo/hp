@@ -1,0 +1,27 @@
+home_dirs:
+  1:
+    suzuki:
+      testdir: ~
+      .zshrc: "/home/suzuki/.zshrc"
+    mozuya:
+      mozu: ~
+  2:
+    taro:
+      sampledir:
+        ~
+  3:
+    suzuki: ~
+    mozuya: ~
+    taro: ~
+
+networks:
+  vnet1:
+    netmask: 255.255.255.0
+    network: 192.168.111.0
+    machines:
+      - hp_node : 1
+        address : 101
+      - hp_node : 2
+        address : "11.102"
+      - hp_node : 3
+        address : 103
