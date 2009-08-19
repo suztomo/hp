@@ -48,7 +48,7 @@ static long sys_connect_wrapper(int call,  unsigned long __user * args,
 {
   long ret;
   printk("*** sys connect is called by %s\n", current->comm);
-  ret = original_sys_socketcall(call, args);
+  ret = sys_connect(fd, uservaddr, addrlen);
   return ret;
 }
 
