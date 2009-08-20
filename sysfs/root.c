@@ -12,8 +12,13 @@
 
 #include "sysfs.h"
 
-struct dentry * hp_dir_entry;
 
+#define HP_DENTRY_NUM 8
+#define HP_DENTRY_KEY_ROOT        0
+#define HP_DENTRY_KEY_NODECONF_IP 1
+
+/* Initialized to NULL */
+static struct dentry *hp_dentries[HP_DENTRY_NUM];
 
 
 void *hp_alloc(const size_t size)
@@ -32,7 +37,7 @@ void hp_free(const void *p)
   kfree(p);
 }
 
-#define HP_NODECONF_IP 0x1
+
 
 static int hp_nodeconf_ip_write(struct hp_io_buffer *buf)
 {
@@ -49,7 +54,7 @@ static int hp_open_control(int type, struct file *file)
   printk(KERN_INFO "*** open!!!\n");
   file->private_data = buf;
   switch(type) {
-  case HP_NODECONF_IP:
+  case HP_DENTRY_KEY_NODECONF_IP:
     buf->write = hp_nodeconf_ip_write;
     break;
   default:
@@ -120,7 +125,7 @@ static int hp_write_control(struct file *file, const char __user *from_data,
     /* return */
     to_data[buf->write_cur] = '\0';
 
-    /* Call special write */
+    /* Call write function */
     buf->write(buf);
     buf->write_cur = 0;
   }
@@ -146,23 +151,28 @@ static const struct file_operations hp_operations = {
 static void hp_create_entry(const char *name, const mode_t mode,
                        struct dentry *parent, const u8 key)
 {
-  securityfs_create_file(name, mode, parent, ((u8 *)NULL) + key,
+  struct dentry *hp_file_entry;
+  hp_file_entry = securityfs_create_file(name, mode, parent, ((u8 *)NULL) + key,
                          &hp_operations);
+
+  /* save the pointer for removing */
+  hp_dentries[key] = hp_file_entry;
 }
 
 static int hp_init_interfaces(void)
 {
-  if (!hp_dir_entry) {
+  if (!hp_dentries[HP_DENTRY_KEY_ROOT]) {
     return -1;
   }
-  hp_create_entry("node_ip", 0666, hp_dir_entry, HP_NODECONF_IP);
+  hp_create_entry("node_ip", 0666, hp_dir_entry, HP_DENTRY_KEY_NODECONF_IP);
 
   return 0;
 }
 
 int hp_init_sysfs(void)
 {
-  hp_dir_entry = securityfs_create_dir(HP_DIR_NAME, NULL);
+  struct dentry *hp_dir_entry = securityfs_create_dir(HP_DIR_NAME, NULL);
+  memset(hp_dentries, 0x0, sizeof(hp_dentries));
   if (!hp_dir_entry) {
     printk(KERN_ALERT "failed securityfs_create_dir.\n");
   }
@@ -173,6 +183,7 @@ int hp_init_sysfs(void)
 
   printk(KERN_INFO "\"/sys/kernel/security/%s/\" was created.\n", HP_DIR_NAME);
 
+  hp_dentries[HP_DENTRY_KEY_ROOT] = hp_dir_entry;
   if (hp_init_interfaces()) {
     printk(KERN_INFO "created interfaces");
   }
@@ -183,8 +194,12 @@ int hp_init_sysfs(void)
 
 int hp_cleanup_sysfs(void)
 {
-  if (hp_dir_entry) {
-    securityfs_remove(hp_dir_entry);
+  int i;
+  for (i=0; i<HP_DENTRY_NUM; ++i) {
+    struct dentry *de = hp_dentries[i];
+    if (de) {
+      securityfs_remove(de);
+    }
   }
 
   printk(KERN_INFO "securityfs %s was removed.\n", HP_DIR_NAME);
