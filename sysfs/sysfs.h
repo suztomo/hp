@@ -22,6 +22,11 @@ struct hp_io_buffer {
 
   /* Buffer for read (not used) */
   char *read_buf;
+  /* cursor for reading */
+  int read_cur;
+  /* sizeof the buffer */
+  int readbuf_size;
+
   /* Buffer for write */
   char write_buf[HP_IOBUF_WRITE_LEN];
   /* cursor for writing */
