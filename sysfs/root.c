@@ -161,10 +161,11 @@ static void hp_create_entry(const char *name, const mode_t mode,
 
 static int hp_init_interfaces(void)
 {
-  if (!hp_dentries[HP_DENTRY_KEY_ROOT]) {
+  struct dentry *hp_root = hp_dentries[HP_DENTRY_KEY_ROOT];
+  if (!hp_root) {
     return -1;
   }
-  hp_create_entry("node_ip", 0666, hp_dir_entry, HP_DENTRY_KEY_NODECONF_IP);
+  hp_create_entry("node_ip", 0666, hp_root, HP_DENTRY_KEY_NODECONF_IP);
 
   return 0;
 }
@@ -196,8 +197,9 @@ int hp_cleanup_sysfs(void)
 {
   int i;
   for (i=0; i<HP_DENTRY_NUM; ++i) {
-    struct dentry *de = hp_dentries[i];
+    struct dentry *de = hp_dentries[HP_DENTRY_NUM - i -1];
     if (de) {
+      printk(KERN_INFO "removing.\n");
       securityfs_remove(de);
     }
   }
