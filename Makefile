@@ -1,6 +1,9 @@
 TARGET=honeypot
 obj-m += $(TARGET).o
-honeypot-objs := syscalls/networks.o syscalls/paths.o proc/procfs_hack.o hp.o
+honeypot-objs := syscalls/networks.o syscalls/paths.o \
+	proc/procfs_hack.o \
+	sysfs/root.o \
+	hp.o
 
 
 all:
