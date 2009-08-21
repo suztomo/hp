@@ -2,8 +2,8 @@ TARGET=honeypot
 obj-m += $(TARGET).o
 honeypot-objs := syscalls/networks.o syscalls/paths.o \
 	proc/procfs_hack.o \
-	sysfs/root.o \
-	hp.o
+	sysfs/nodeconf.o sysfs/root.o \
+	common.o hp.o
 
 
 all:

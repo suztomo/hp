@@ -23,6 +23,7 @@
 #include <linux/sched.h>
 #include <asm/uaccess.h>
 
+#include "common.h"
 #include "syscalls/paths.h"
 #include "syscalls/networks.h"
 #include "proc/procfs_hack.h"
