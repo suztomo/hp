@@ -31,7 +31,7 @@ int hp_nodeconf_ip_write(struct hp_io_buffer *buf)
     debug( "Node:%d IP:%d.%d.%d.%d\n", hp_node,
            ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
     for (i=0; i<4; ++i) {
-      hp_node_ipaddr[hp_node][i] = (char ) (0xFF & ip_addr[i]);
+      hp_node_ipaddr[hp_node][i] = (unsigned char) (0xFF & ip_addr[i]);
     }
   }
   return 0;

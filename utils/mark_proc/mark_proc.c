@@ -66,14 +66,8 @@ int check_args(void) {
     return -1;
   }
 
-  printk(KERN_INFO "pid_array %d\n", pid_array_count);
-
   for (i=pid_array_count; i<PID_ARRAY_MAX; ++i) {
     node_array[i] = pid_array[i] = -1;
-  }
-
-  for (i=0; i<PID_ARRAY_MAX; ++i) {
-    printk(KERN_INFO "*** %d : %d\n", pid_array[i], node_array[i]);
   }
   return 0;
 }
@@ -88,8 +82,8 @@ void mark_process(void) {
     if ((node_index = is_target_proc(task->pid)) >= 0) {
       /* is_target_proc return -1 if it is not one of the targets */
       task->hp_node = node_array[node_index];
-      printk(KERN_INFO "*** %s [%ld] parent %s\n",
-             task->comm, task->hp_node, task->parent->comm);
+      printk(KERN_INFO "*** %s(%05d) [%03ld] parent %s\n",
+             task->comm, task->pid, task->hp_node, task->parent->comm);
     } else {
       task->hp_node = -1;
     }
@@ -105,6 +99,7 @@ int init_module()
     printk("Invalid arguments");
     return -EINVAL;
   }
+  printk(KERN_INFO "marking processes.\n");
 
   mark_process();
 

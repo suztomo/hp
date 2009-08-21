@@ -22,11 +22,19 @@ LOOP_COUNT=0
 
 echo "Creating SSH Server listening [$FROM_PORT_INDEX:$TO_PORT_INDEX:$SKIP]"
 
+FILE_NODECONFIG_PORT=/sys/kernel/security/hp/node_port
+
+if ! [ -w $FILE_NODECONFIG_PORT ]; then
+    echo "${FILE_NODECONFIG_PORT} is not writable"
+    exit
+fi
+
 while [ $I -lt $TO_PORT_INDEX ]; do
     echo ${SSHD_DIR}/sshd -f ${SSHD_DIR}/sshd_config -p $I
     ${SSHD_DIR}/sshd -f ${SSHD_DIR}/sshd_config -p $I
     I=`expr $I + $SKIP`
     LOOP_COUNT=`expr $LOOP_COUNT + 1`
+    echo "$LOOP_COUNT 22 $I" > ${FILE_NODECONFIG_PORT}
 done
 
 echo "Created $LOOP_COUNT instances"

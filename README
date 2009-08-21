@@ -1,0 +1,32 @@
+Linux kernel hacks study
+
+References
+http://tldp.org/LDP/lkmpg/2.6/html/
+
+
+To make vulnerable kernel:
+
+in arch/x86/kernel/entry_32.S
+  .data
+  include "sys_call_table_32.S"
+
+In kernel/kallsyms.c
+  extern void * sys_call_table[];
+  EXPORT_SYMBOL(sys_call_table);
+
+In fs/proc/base.c
+  if (honeypot_hooks.in_proc_pid_readdir(&iter)) {
+    continue;
+  }
+  etc...
+
+In include/linux/sched.h
+  long hp_node;
+  char hp_buf[12];
+
+
+To run the sshd and mark their hp_node member in task_struct,
+  ./utils/run_sshd.sh 10022 10923 100
+  cd utils/mark_proc/; ./run.sh
+  dmesg
+

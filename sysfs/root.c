@@ -17,7 +17,7 @@
 static struct dentry *hp_dentries[HP_DENTRY_NUM];
 
 /* Initialized to zero */
-char hp_node_ipaddr[HP_NODE_NUM+1][4];
+unsigned char hp_node_ipaddr[HP_NODE_NUM+1][4];
 int hp_node_port[HP_NODE_NUM+1];
 
 static int hp_open_control(int type, struct file *file)
