@@ -49,7 +49,7 @@ static int manage_afinet(struct sockaddr __user * uservaddr, int addrlen,
                           struct sockaddr * copied_vaddr)
 {
   int vport = 0;
-  char ip_addr[4];
+  unsigned char ip_addr[4];
   int i, j, t;
   int to_node = -1;
   int to_port;
@@ -68,13 +68,15 @@ static int manage_afinet(struct sockaddr __user * uservaddr, int addrlen,
     for (j=0; j<4; ++j) {
       if (ip_addr[j] != hp_node_ipaddr[i][j]) {
         t = 0;
+        debug("%d[%d]: %d and %d.\n", i, j, ip_addr[j], hp_node_ipaddr[i][j]);
         break;
-      } else {
-        debug("%d and %d.\n", ip_addr[j], hp_node_ipaddr[i][j]);
       }
     }
     if (t) {
       to_node = i;
+      break;
+    }
+    if (hp_node_ipaddr[i][0] == 0) {
       break;
     }
   }

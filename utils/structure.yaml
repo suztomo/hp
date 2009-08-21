@@ -10,7 +10,9 @@ home_dirs:
       sampledir:
         ~
   3:
-    suzuki: ~
+    suzuki:
+      testdir: ~
+      .zshrc: "/home/suzuki/.zshrc"
     mozuya: ~
     taro: ~
 

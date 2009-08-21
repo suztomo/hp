@@ -44,7 +44,7 @@ def main():
     if not HOME_DIR_ENTRY_NAME in data:
         exit()
     for k in data[HOME_DIR_ENTRY_NAME].keys():
-        create_dir(HOME_DIR_PATH, "%05d" % int(k), data[HOME_DIR_ENTRY_NAME][k])
+        create_dir(HOME_DIR_PATH, "%05d/home" % int(k), data[HOME_DIR_ENTRY_NAME][k])
 
 
 if __name__ == '__main__':

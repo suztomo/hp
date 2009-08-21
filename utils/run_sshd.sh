@@ -32,9 +32,9 @@ fi
 while [ $I -lt $TO_PORT_INDEX ]; do
     echo ${SSHD_DIR}/sshd -f ${SSHD_DIR}/sshd_config -p $I
     ${SSHD_DIR}/sshd -f ${SSHD_DIR}/sshd_config -p $I
-    I=`expr $I + $SKIP`
     LOOP_COUNT=`expr $LOOP_COUNT + 1`
     echo "$LOOP_COUNT 22 $I" > ${FILE_NODECONFIG_PORT}
+    I=`expr $I + $SKIP`
 done
 
 echo "Created $LOOP_COUNT instances"
