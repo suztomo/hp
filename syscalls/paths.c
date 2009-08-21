@@ -218,9 +218,6 @@ asmlinkage long sys_lstat64_wrapper(char *path, struct stat64 *buf)
     return original_sys_lstat64(path, buf);
   }
 
-  printk("*** Lstat64ed file %s by %d on %ld %s: \n", path, current->pid,
-         current->hp_node, current->comm);
-
   new_path = replace_path_if_necessary(path);
   if (new_path == NULL) {
     return original_sys_lstat64(path, buf);
@@ -259,9 +256,6 @@ asmlinkage long sys_stat64_wrapper(char *path, struct stat64 *buf)
   if (current->hp_node <= 0) {
     return original_sys_stat64(path, buf);
   }
-
-  printk("*** Stat64ed file %s by %d on %ld %s: \n", path, current->pid,
-         current->hp_node, current->comm);
 
   new_path = replace_path_if_necessary(path);
   if (new_path == NULL) {

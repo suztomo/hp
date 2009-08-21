@@ -18,7 +18,7 @@ def create_node(node, netmask, network, machine_addr):
         machine_addr[i] = (machine_addr[i] & ~netmask[i]) | network[i];
     print(machine_addr)
     f = open(FILE_NODECONFIG_IP, "w")
-    f.write("%s %s.%s.%s.%s\n" % (node, machine_addr[0], machine_addr[2],
+    f.write("%s %s.%s.%s.%s\n" % (node, machine_addr[0], machine_addr[1],
                                   machine_addr[2], machine_addr[3]))
     f.close()
 

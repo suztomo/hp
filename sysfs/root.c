@@ -27,7 +27,6 @@ static int hp_open_control(int type, struct file *file)
   buf->write_cur = 0;
   buf->read_cur = 0;
   mutex_init(&buf->io_sem);
-  debug( "*** open!!!\n");
   file->private_data = buf;
   switch(type) {
   case HP_DENTRY_KEY_NODECONF_IP:
@@ -78,7 +77,6 @@ static ssize_t hp_read_control(struct file *file, char __user *buf, size_t count
 static ssize_t hp_read(struct file *file, char __user *buf, size_t count,
                        loff_t *ppos)
 {
-  debug( "*** read!!!\n");
   return hp_read_control(file, buf, count, ppos);
 }
 
@@ -98,7 +96,6 @@ static int hp_release_control(struct inode *inode, struct file *file)
 
 static int hp_release(struct inode *inode, struct file *file)
 {
-  debug( "*** release!!!\n");
   return hp_release_control(inode, file);
 }
 
@@ -151,7 +148,6 @@ static int hp_write_control(struct file *file, const char __user *from_data,
 static int hp_write(struct file *file, const char __user *buf,
                     size_t count, loff_t *ppos)
 {
-  debug( "*** write!!! %d\n", count);
   return hp_write_control(file, buf, count, ppos);
 }
 
@@ -227,7 +223,6 @@ int hp_cleanup_sysfs(void)
       securityfs_remove(de);
     }
   }
-
   debug("securityfs %s was removed.\n", HP_DIR_NAME);
   /* Succeess */
   return 0;

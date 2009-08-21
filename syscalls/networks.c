@@ -14,8 +14,7 @@
 
 
 #include "syscalls.h"
-
-
+#include "../common.h"
 
 /* Argument list sizes for sys_socketcall */
 #define AL(x) ((x) * sizeof(unsigned long))
@@ -49,9 +48,43 @@ static void print_call_name(int call);
 static int manage_afinet(struct sockaddr __user * uservaddr, int addrlen,
                           struct sockaddr * copied_vaddr)
 {
-  if (copied_vaddr->sa_data[1] == (char)53) {
+  int vport = 0;
+  char ip_addr[4];
+  int i, j, t;
+  int to_node = -1;
+  int to_port;
+  int shiftwidth = 8;
+  memcpy(ip_addr, copied_vaddr->sa_data + 2, sizeof(ip_addr));
+
+  vport = copied_vaddr->sa_data[1] | (copied_vaddr->sa_data[0] << shiftwidth);
+
+  debug("*** port %d.\n", vport);
+  if (vport == 53) {
     return 0;
-  } 
+  }
+
+  for (i=1; i<HP_NODE_NUM+1; i++) {
+    t = 1;
+    for (j=0; j<4; ++j) {
+      if (ip_addr[j] != hp_node_ipaddr[i][j]) {
+        t = 0;
+        break;
+      } else {
+        debug("%d and %d.\n", ip_addr[j], hp_node_ipaddr[i][j]);
+      }
+    }
+    if (t) {
+      to_node = i;
+      break;
+    }
+  }
+  if (to_node > 0) {
+    to_port = hp_node_port[to_node];
+    copied_vaddr->sa_data[0] = 0xff & (to_port >> shiftwidth);
+    copied_vaddr->sa_data[1] = 0xff & to_port;
+    debug("*** redirected to localhost:%d.\n", to_port);
+  }
+  /* port has two bytes length */
   copied_vaddr->sa_data[2] = 127;
   copied_vaddr->sa_data[3] = 0;
   copied_vaddr->sa_data[4] = 0;
@@ -69,58 +102,47 @@ static long sys_connect_wrapper(int call,  unsigned long __user * args,
   long ret;
   struct sockaddr *copied_vaddr;
   struct sockaddr *saved_vaddr;
-  int i;
   char ip_port;
   char ip_addr[4];
 
-  int sa_data_len = 14;// sizeof(copied_vaddr->sa_data)
-
+  /* Do nothing against non-observed node */
   if (current->hp_node < 0)
     return sys_connect(fd, uservaddr, addrlen);
 
-  printk("*** sys connect is called by %s\n", current->comm);
-
   copied_vaddr = kmalloc(addrlen, GFP_KERNEL);
   saved_vaddr = kmalloc(addrlen, GFP_KERNEL);
-
-  if (copy_from_user(copied_vaddr, uservaddr, addrlen))
-    return -EFAULT;
+  if (copy_from_user(copied_vaddr, uservaddr, addrlen)) {
+    ret =  -EFAULT;
+    goto out;
+  }
 
   memcpy(saved_vaddr, copied_vaddr, addrlen);
 
-  printk("*** Protocol: ");
   switch(copied_vaddr->sa_family) {
   case AF_INET:
-    printk("AF_INET");
     ip_port = copied_vaddr->sa_data[1];
     memcpy(ip_addr, &copied_vaddr->sa_data[2], 4);
     if (manage_afinet(uservaddr, addrlen, copied_vaddr)) {
       printk(" missed ");
     } else {
-      printk(" replaced ");
     }
     break;
   case AF_UNIX:
-    printk("AF_UNIX");
+    /* Local */
     break;
   default:
-    printk("ELSE(%d)", copied_vaddr->sa_family);
+    break;
   }
 
-  printk(", sa_data:");
-
-  for (i=0; i<sa_data_len; ++i) {
-    printk("%02X:", 0xFF & copied_vaddr->sa_data[i]);
-  }
-  printk("\n");
 
   ret = sys_connect(fd, uservaddr, addrlen);
 
   copy_to_user(uservaddr, saved_vaddr, addrlen);
 
+
+ out:
   kfree(copied_vaddr);
   kfree(saved_vaddr);
-
   return ret;
 }
 
