@@ -5,16 +5,49 @@ home_dirs:
       .zshrc: "/home/suzuki/.zshrc"
     mozuya:
       mozu: ~
+    mitou:
+      host1: ~
   2:
     taro:
-      sampledir:
-        ~
+      sampledir: ~
+    suzuki:
+      sampledir: ~
+    mitou:
+      host2: ~
   3:
     suzuki:
       testdir: ~
-      .zshrc: "/home/suzuki/.zshrc"
     mozuya: ~
     taro: ~
+    mitou:
+      host3: ~
+  4:
+    mitou:
+      host4: ~
+  5:
+    mitou:
+      host3: ~
+  6:
+    mitou:
+      host7: ~
+  7:
+    mitou:
+      host7: ~
+  8:
+    mitou:
+      host8: ~
+  9:
+    mitou:
+      host9: ~
+  10:
+    mitou:
+      host10: ~
+  98:
+    mitou:
+      host98: ~
+  99:
+    mitou:
+      host99: ~
 
 networks:
   vnet1:
@@ -27,3 +60,17 @@ networks:
         address : "11.102"
       - hp_node : 3
         address : 103
+      - hp_node : 4
+        address : 104
+      - hp_node : 5
+        address : 105
+      - hp_node : 6
+        address : 106
+      - hp_node : 7
+        address : 107
+      - hp_node : 8
+        address : 108
+      - hp_node : 9
+        address : 109
+      - hp_node : 10
+        address : 110

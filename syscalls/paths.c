@@ -184,17 +184,74 @@ asmlinkage int sys_chdir_wrapper(/* const */ char *path)
   restore_path(path);
   return ret;
 }
+#include <linux/dcache.h>
+#include <linux/namei.h>
 
+#include <linux/spinlock.h>
+#include "../common.h"
 
+#include <linux/sched.h>
+#include <linux/fs_struct.h>
 
+#include <linux/types.h>
+#include <linux/mount.h>
+#include <linux/mnt_namespace.h>
+
+#define HP_PATH_LEN 4096
+
+/*
+
+  Get the path
+  The return value must be freed by hp_free().
+ */
+char *hp_realpath_nofollow(const char *pathname)
+{
+  struct path path;
+  char *sp = NULL;
+  char *buf = hp_alloc(HP_PATH_LEN);
+  int retval = 0;
+  if (!buf)  {
+    return NULL;
+  }
+
+  if (pathname && (retval = kern_path(pathname, 0, &path)) == 0) {
+    sp = d_path(&path, buf, HP_PATH_LEN);
+    path_put(&path);
+    strncpy(buf, sp, HP_PATH_LEN);
+  } else {
+  }
+
+  return buf;
+}
 asmlinkage int sys_open_wrapper(char *path, int flags, int mode)
 {
   int ret;
   char *new_path;
+  char *realpath = NULL;
+  char pathname[1024];
+  char c;
+  int i = 0;
 
   if (current->hp_node <= 0) {
     /* Do nothing if it is not one of target processes */
     return original_sys_open(path, flags, mode);
+  }
+
+  /* Copies the string from user space */
+  memset(pathname, 0x0, sizeof(pathname));
+  do {
+    get_user(c, path+i);
+    pathname[i] = c;
+    ++i;
+  } while(c);
+
+  debug("*** path     %s\n", pathname);
+
+  realpath = hp_realpath_nofollow(pathname);
+
+  debug("*** realpath %s\n", realpath);
+  if (realpath) {
+    hp_free(realpath);
   }
 
   new_path = replace_path_if_necessary(path);
