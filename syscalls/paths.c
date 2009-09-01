@@ -287,10 +287,6 @@ char *hp_realpath_nofollow(const char *pathname)
   } else {
   }
 
-  if (0) {
-    do_getname(NULL, NULL);
-  }
-
   return buf;
 }
 
