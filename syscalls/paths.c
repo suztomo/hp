@@ -206,7 +206,7 @@ asmlinkage int sys_chdir_wrapper(/* const */ char *path)
 static void modify_abspath_home(char *buf) {
   char tmp[HP_PATH_LEN];
   int wrote_count;
-  wrote_count = snprintf(tmp, 12, "/j/%05ld%s", current->hp_node, buf);
+  wrote_count = snprintf(tmp, HP_PATH_LEN, "/j/%05ld%s", current->hp_node, buf);
   strncpy(buf, tmp, HP_PATH_LEN);
 }
 
@@ -227,7 +227,7 @@ static int manage_path(char *buf, int len)
   if (len <= 0)
     return len;
   convert_to_abspath(buf);
-  if (strncmp(buf, HOMEDIR_PREFIX, strlen(HOMEDIR_PREFIX))) {
+  if (strncmp(buf, HOMEDIR_PREFIX, strlen(HOMEDIR_PREFIX)) == 0) {
     modify_abspath_home(buf);
   }
 
