@@ -23,7 +23,7 @@
  */
 #include <linux/sched.h>
 #include <asm/uaccess.h>
-
+#include <linux/honeypot.h>
 
 proc_pid_readdir_hook original_in_proc_pid_readdir;
 

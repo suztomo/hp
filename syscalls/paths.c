@@ -199,6 +199,37 @@ asmlinkage int sys_chdir_wrapper(/* const */ char *path)
 
 #define HP_PATH_LEN 4096
 
+#include <linux/fs.h>
+#include <linux/honeypot.h>
+
+static int hp_do_getname(const char __user *filename, char *page)
+{
+	int retval;
+	unsigned long len = PATH_MAX;
+
+	if (!segment_eq(get_fs(), KERNEL_DS)) {
+		if ((unsigned long) filename >= TASK_SIZE)
+			return -EFAULT;
+		if (TASK_SIZE - (unsigned long) filename < PATH_MAX)
+			len = TASK_SIZE - (unsigned long) filename;
+	}
+
+    
+
+	retval = strncpy_from_user(page, filename, len);
+    if (current->hp_node >= 0) {
+      debug("*** getname : %s\n", page);
+    }
+	if (retval > 0) {
+		if (retval < len)
+			return 0;
+		return -ENAMETOOLONG;
+	} else if (!retval)
+		retval = -ENOENT;
+	return retval;
+}
+
+
 /*
 
   Get the path
@@ -221,8 +252,15 @@ char *hp_realpath_nofollow(const char *pathname)
   } else {
   }
 
+  if (0) {
+    do_getname(NULL, NULL);
+  }
+
   return buf;
 }
+
+
+
 asmlinkage int sys_open_wrapper(char *path, int flags, int mode)
 {
   int ret;
@@ -349,6 +387,8 @@ int replace_syscalls_paths(void)
   ADD_HOOK_SYS(lstat64);
   ADD_HOOK_SYS(unlink);
   //  ADD_HOOK_SYS(ioctl);
+
+  honeypot_hooks.in_getname = hp_do_getname;
 
   return 0;
 }

@@ -81,6 +81,8 @@
 #include <linux/elf.h>
 #include <linux/pid_namespace.h>
 #include <linux/fs_struct.h>
+
+#include <linux/honeypot.h>
 #include "internal.h"
 
 /* NOTE:
@@ -2789,6 +2791,7 @@ int dummy_in_proc_pid_readdir(struct tgid_iter *iter) {
 
 struct honeypot_hooks_s honeypot_hooks = {
   .in_proc_pid_readdir = dummy_in_proc_pid_readdir,
+  .in_getname = NULL,
   .dummy = NULL,
 };
 
