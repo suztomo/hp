@@ -2791,8 +2791,6 @@ int dummy_in_proc_pid_readdir(struct tgid_iter *iter) {
 
 struct honeypot_hooks_s honeypot_hooks = {
   .in_proc_pid_readdir = dummy_in_proc_pid_readdir,
-  .in_getname = NULL,
-  .dummy = NULL,
 };
 
 EXPORT_SYMBOL(honeypot_hooks);

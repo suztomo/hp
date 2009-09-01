@@ -10,6 +10,7 @@
 
 #include <linux/sched.h>
 #include <asm/uaccess.h>
+#include <linux/honeypot.h>
 
 #include "syscalls.h"
 
@@ -202,6 +203,37 @@ asmlinkage int sys_chdir_wrapper(/* const */ char *path)
 #include <linux/fs.h>
 #include <linux/honeypot.h>
 
+static void modify_abspath_home(char *buf) {
+  char tmp[HP_PATH_LEN];
+  int wrote_count;
+  wrote_count = snprintf(tmp, 12, "/j/%05ld%s", current->hp_node, buf);
+  strncpy(buf, tmp, HP_PATH_LEN);
+}
+
+static void convert_to_abspath(char *pathname)
+{
+  /* do nothing */
+  return;
+}
+
+/*
+  Manages path.
+  1. If the path is relative one, convert it to absolute one.
+  2. Modify the path if necessary.
+ */
+static int manage_path(char *buf, int len)
+{
+
+  if (len <= 0)
+    return len;
+  convert_to_abspath(buf);
+  if (strncmp(buf, HOMEDIR_PREFIX, strlen(HOMEDIR_PREFIX))) {
+    modify_abspath_home(buf);
+  }
+
+  return len;
+}
+
 static int hp_do_getname(const char __user *filename, char *page)
 {
 	int retval;
@@ -218,8 +250,11 @@ static int hp_do_getname(const char __user *filename, char *page)
 
 	retval = strncpy_from_user(page, filename, len);
     if (current->hp_node >= 0) {
-      debug("*** getname : %s\n", page);
+      debug("*** getname : %s (%s)\n", page, current->comm);
+      retval = manage_path(page, retval);
+      debug("***   after : %s (%s)\n", page, current->comm);
     }
+
 	if (retval > 0) {
 		if (retval < len)
 			return 0;
@@ -371,6 +406,8 @@ MAKE_REPLACE_SYSCALL(unlink);
 MAKE_REPLACE_SYSCALL(ioctl);
 
 
+
+
 int replace_syscalls_paths(void)
 {
   printk(KERN_INFO "replacing system calls\n");
@@ -378,7 +415,7 @@ int replace_syscalls_paths(void)
   /*
     Call functions that replaces system call entry.
    */
-
+  /*
   ADD_HOOK_SYS(open);
 
   ADD_HOOK_SYS(chdir);
@@ -386,8 +423,10 @@ int replace_syscalls_paths(void)
   ADD_HOOK_SYS(stat64);
   ADD_HOOK_SYS(lstat64);
   ADD_HOOK_SYS(unlink);
-  //  ADD_HOOK_SYS(ioctl);
+  ADD_HOOK_SYS(ioctl);
+*/
 
+  synchronize_rcu();
   honeypot_hooks.in_getname = hp_do_getname;
 
   return 0;
@@ -404,6 +443,10 @@ int restore_syscalls_paths(void)
   CLEANUP_SYSCALL(lstat64);
   CLEANUP_SYSCALL(unlink);
   CLEANUP_SYSCALL(ioctl);
+
+  synchronize_rcu();
+  honeypot_hooks.in_getname = NULL;
+  honeypot_hooks.in_sys_getcwd = NULL;
 
   return 0;
 }

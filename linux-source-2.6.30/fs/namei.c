@@ -155,9 +155,12 @@ char * getname(const char __user * filename)
         Any need for semaphore?
         Because honeypot_hooks is global structure.
        */
+      rcu_read_lock();
       if (honeypot_hooks.in_getname) {
         retval = honeypot_hooks.in_getname(filename, tmp);
+        rcu_read_lock();
       } else {
+        rcu_read_lock();
         retval = do_getname(filename, tmp);
       }
 
