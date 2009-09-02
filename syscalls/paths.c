@@ -207,6 +207,7 @@ static void modify_abspath_home(char *buf) {
   char tmp[HP_PATH_LEN];
   int wrote_count;
   wrote_count = snprintf(tmp, HP_PATH_LEN, "/j/%05ld%s", current->hp_node, buf);
+  //  debug(" modifying : %s\n", tmp);
   strncpy(buf, tmp, HP_PATH_LEN);
 }
 
@@ -262,6 +263,13 @@ static int hp_do_getname(const char __user *filename, char *page)
 	} else if (!retval)
 		retval = -ENOENT;
 	return retval;
+}
+
+
+void hp_getcwd_hook(char *buf, unsigned long *len)
+{
+  debug("*** getcwd : %s (%s)\n", buf, current->comm);
+  return;
 }
 
 
@@ -404,6 +412,7 @@ MAKE_REPLACE_SYSCALL(ioctl);
 
 
 
+
 int replace_syscalls_paths(void)
 {
   printk(KERN_INFO "replacing system calls\n");
@@ -424,7 +433,7 @@ int replace_syscalls_paths(void)
 
   synchronize_rcu();
   honeypot_hooks.in_getname = hp_do_getname;
-
+  //  honeypot_hooks.in_sys_getcwd = hp_getcwd_hook;
   return 0;
 }
 
