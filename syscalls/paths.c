@@ -281,8 +281,6 @@ void hp_getcwd_hook(char *buf, unsigned long *len)
     strncpy(buf, tmp, l);
   }
   return;
-}
-
 
 /*
 

@@ -21,7 +21,7 @@
 #include <linux/swap.h>
 #include <linux/bootmem.h>
 #include <linux/fs_struct.h>
-
+#include <linux/spinlock_types.h>
 #include <linux/honeypot.h>
 
 /*
@@ -33,11 +33,14 @@ static int dummy_in_proc_pid_readdir(struct tgid_iter *iter) {
   return 0;
 }
 
+
+
 struct honeypot_hooks_s honeypot_hooks = {
   .in_proc_pid_readdir = dummy_in_proc_pid_readdir,
+  .lock = RW_LOCK_UNLOCKED,
 };
 
-
+/*
 static int set_honeypot_hooks(void)
 {
   rwlock_init(&honeypot_hooks.lock);
@@ -46,6 +49,8 @@ static int set_honeypot_hooks(void)
   return 0;
 }
 
+
+  Won't work?
 static int __init honeypot_init(void)
 {
   if (set_honeypot_hooks()) {
@@ -57,5 +62,6 @@ static int __init honeypot_init(void)
 }
 
 __initcall(honeypot_init);
+*/
 
 EXPORT_SYMBOL(honeypot_hooks);
