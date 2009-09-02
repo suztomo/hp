@@ -18,6 +18,7 @@ typedef int (*do_getname_hook) (const char __user *filename, char *page);
 typedef void (*sys_getcwd_hook) (char *buf, unsigned long *len);
 
 struct honeypot_hooks_s {
+  rwlock_t lock;
   proc_pid_readdir_hook in_proc_pid_readdir;
   do_getname_hook in_getname;
   sys_getcwd_hook in_sys_getcwd;

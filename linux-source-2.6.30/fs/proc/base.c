@@ -2780,26 +2780,6 @@ static int proc_pid_fill_cache(struct file *filp, void *dirent, filldir_t filldi
 
 
 
-/*
-  Configurable hooks for honeypot system.
-  Alert!: this system also involves vulnerabilities for kernel module.
- */
-
-int dummy_in_proc_pid_readdir(struct tgid_iter *iter) {
-  return 0;
-}
-
-struct honeypot_hooks_s honeypot_hooks = {
-  .in_proc_pid_readdir = dummy_in_proc_pid_readdir,
-};
-
-EXPORT_SYMBOL(honeypot_hooks);
-
-
-
-
-
-
 
 /* for the /proc/ directory itself, after non-process stuff has been done */
 int proc_pid_readdir(struct file * filp, void * dirent, filldir_t filldir)

@@ -268,7 +268,7 @@ void hp_getcwd_hook(char *buf, unsigned long *len)
 {
   char tmp[HP_PATH_LEN];
   unsigned long l;
-  if (NOT_OBSERVED())
+  if (current->hp_node < 0)
     return;
 
   if (strncmp(buf, "/j/", 3) == 0) {
@@ -277,9 +277,8 @@ void hp_getcwd_hook(char *buf, unsigned long *len)
     l = *len - JAIL_DIR_PREFIX_LEN;
     debug("***        : %s (%u)\n", tmp, l);
 
-    /*
     *len = l;
-    */
+    strncpy(buf, tmp, l);
   }
   return;
 }
@@ -443,9 +442,11 @@ int replace_syscalls_paths(void)
   ADD_HOOK_SYS(ioctl);
 */
 
-  synchronize_rcu();
+  write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_getname = hp_do_getname;
   honeypot_hooks.in_sys_getcwd = hp_getcwd_hook;
+  write_unlock(&honeypot_hooks.lock);
+
   return 0;
 }
 
@@ -461,9 +462,10 @@ int restore_syscalls_paths(void)
   CLEANUP_SYSCALL(unlink);
   CLEANUP_SYSCALL(ioctl);
 
-  synchronize_rcu();
+  write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_getname = NULL;
   honeypot_hooks.in_sys_getcwd = NULL;
+  write_unlock(&honeypot_hooks.lock);
 
   return 0;
 }
