@@ -3,6 +3,7 @@
  */
 
 #ifndef HP_COMMON
+#define HP_COMMON
 
 void *hp_alloc(const size_t size);
 void hp_free(const void *p);
@@ -15,5 +16,7 @@ void hp_free(const void *p);
 extern unsigned char hp_node_ipaddr[HP_NODE_NUM+1][4];
 extern int hp_node_port[HP_NODE_NUM+1];
 
-#define HP_COMMON
+#define IS_OBSERVED() ((current)->hp_node >= 0)
+#define NOT_OBSERVED() (!IS_OBSERVED())
+
 #endif

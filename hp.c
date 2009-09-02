@@ -32,12 +32,22 @@
 MODULE_LICENSE("GPL");
 
 
+static void mark_process(void) {
+  struct task_struct *task = &init_task;
+  do {
+    task->hp_node = -1;
+  } while ((task = next_task(task)) != &init_task);
+}
+
+
 /* 
  * Initialize the module - replace the system call
  */
 int init_module()
 {
   printk(KERN_INFO "Hello, honeypot!\n");
+  mark_process();
+
   if (replace_syscalls_paths()) {
     printk(KERN_ALERT "System calls replace (paths) failed.\n");
     return -1;

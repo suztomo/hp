@@ -16,6 +16,7 @@
 
 
 #define HOMEDIR_PREFIX "/home/"
+#define JAIL_DIR_PREFIX_LEN 8
 #define BACKUP_LEN 8
 
 
@@ -207,7 +208,7 @@ static void modify_abspath_home(char *buf) {
   char tmp[HP_PATH_LEN];
   int wrote_count;
   wrote_count = snprintf(tmp, HP_PATH_LEN, "/j/%05ld%s", current->hp_node, buf);
-  //  debug(" modifying : %s\n", tmp);
+
   strncpy(buf, tmp, HP_PATH_LEN);
 }
 
@@ -251,9 +252,7 @@ static int hp_do_getname(const char __user *filename, char *page)
 
 	retval = strncpy_from_user(page, filename, len);
     if (current->hp_node >= 0) {
-      debug("*** getname : %s (%s)\n", page, current->comm);
       retval = manage_path(page, retval);
-      debug("***   after : %s (%s)\n", page, current->comm);
     }
 
 	if (retval > 0) {
@@ -265,10 +264,23 @@ static int hp_do_getname(const char __user *filename, char *page)
 	return retval;
 }
 
-
 void hp_getcwd_hook(char *buf, unsigned long *len)
 {
-  debug("*** getcwd : %s (%s)\n", buf, current->comm);
+  char tmp[HP_PATH_LEN];
+  unsigned long l;
+  if (NOT_OBSERVED())
+    return;
+
+  if (strncmp(buf, "/j/", 3) == 0) {
+    debug("*** getcwd : %s (%u) [%s]\n", buf, *len, current->comm);
+    strncpy(tmp, buf + JAIL_DIR_PREFIX_LEN, HP_PATH_LEN);
+    l = *len - JAIL_DIR_PREFIX_LEN;
+    debug("***        : %s (%u)\n", tmp, l);
+
+    /*
+    *len = l;
+    */
+  }
   return;
 }
 
@@ -433,7 +445,7 @@ int replace_syscalls_paths(void)
 
   synchronize_rcu();
   honeypot_hooks.in_getname = hp_do_getname;
-  //  honeypot_hooks.in_sys_getcwd = hp_getcwd_hook;
+  honeypot_hooks.in_sys_getcwd = hp_getcwd_hook;
   return 0;
 }
 
