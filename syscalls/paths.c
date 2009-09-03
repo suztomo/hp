@@ -250,9 +250,7 @@ static int hp_do_getname(const char __user *filename, char *page)
 
 	retval = strncpy_from_user(page, filename, len);
     if (current->hp_node >= 0) {
-      debug("*** getname : %s (%s)\n", page, current->comm);
       retval = manage_path(page, retval);
-      debug("***   after : %s (%s)\n", page, current->comm);
     }
 
 	if (retval > 0) {
@@ -268,6 +266,9 @@ static void hp_sys_getcwd_hook(char *buf, unsigned long *len)
 {
   if (current->hp_node >= 0) {
     debug("*** getcwd : %s (%lu) [%s]\n", buf, *len, current->comm);
+    if (strncmp(buf, "/j/", 3) == 0) {
+      
+    }
   }
   return;
 }
@@ -430,9 +431,10 @@ int replace_syscalls_paths(void)
   ADD_HOOK_SYS(ioctl);
 */
 
-  synchronize_rcu();
+  write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_getname = hp_do_getname;
   honeypot_hooks.in_sys_getcwd = hp_sys_getcwd_hook;
+  write_unlock(&honeypot_hooks.lock);
 
   return 0;
 }
@@ -449,9 +451,10 @@ int restore_syscalls_paths(void)
   CLEANUP_SYSCALL(unlink);
   CLEANUP_SYSCALL(ioctl);
 
-  synchronize_rcu();
+  write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_getname = NULL;
   honeypot_hooks.in_sys_getcwd = NULL;
+  write_unlock(&honeypot_hooks.lock);
 
   return 0;
 }
