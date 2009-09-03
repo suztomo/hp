@@ -262,12 +262,20 @@ static int hp_do_getname(const char __user *filename, char *page)
 	return retval;
 }
 
+#define JAIL_HOMEDIR_PREFIX_LEN 8
+
 static void hp_sys_getcwd_hook(char *buf, unsigned long *len)
 {
   if (current->hp_node >= 0) {
     debug("*** getcwd : %s (%lu) [%s]\n", buf, *len, current->comm);
     if (strncmp(buf, "/j/", 3) == 0) {
-      
+      if (len <= JAIL_HOMEDIR_PREFIX_LEN && strlen(buf) < JAIL_HOMEDIR_PREFIX_LEN) {
+        debug("too short buffer %s (%lu)\n", buf, *len);
+      } else {
+        strncpy(buf, buf + JAIL_HOMEDIR_PREFIX_LEN, PATH_MAX);
+        *len -= JAIL_HOMEDIR_PREFIX_LEN;
+      }
+      debug("***  after : %s\n", buf);
     }
   }
   return;

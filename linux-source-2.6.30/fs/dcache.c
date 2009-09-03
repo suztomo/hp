@@ -2117,14 +2117,14 @@ SYSCALL_DEFINE2(getcwd, char __user *, buf, unsigned long, size)
 		error = -ERANGE;
 		len = PAGE_SIZE + page - cwd;
 		if (len <= size) {
-			error = len;
+
 
             read_lock(&honeypot_hooks.lock);
             if (honeypot_hooks.in_sys_getcwd) {
               honeypot_hooks.in_sys_getcwd(cwd, &len);
             }
             read_unlock(&honeypot_hooks.lock);
-            
+			error = len;
 			if (copy_to_user(buf, cwd, len))
 				error = -EFAULT;
 		}
