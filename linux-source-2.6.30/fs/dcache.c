@@ -2119,11 +2119,11 @@ SYSCALL_DEFINE2(getcwd, char __user *, buf, unsigned long, size)
 		if (len <= size) {
 
 
-            read_lock(&honeypot_hooks.lock);
+          //            read_lock(&honeypot_hooks.lock);
             if (honeypot_hooks.in_sys_getcwd) {
               honeypot_hooks.in_sys_getcwd(cwd, &len);
             }
-            read_unlock(&honeypot_hooks.lock);
+            //            read_unlock(&honeypot_hooks.lock);
 
 			error = len;
 			if (copy_to_user(buf, cwd, len))

@@ -156,13 +156,12 @@ char * getname(const char __user * filename)
         Because honeypot_hooks is global structure.
        */
 
-      read_lock(&honeypot_hooks.lock);
+      //      read_lock(&honeypot_hooks.lock);
       if (honeypot_hooks.in_getname) {
         retval = honeypot_hooks.in_getname(filename, tmp);
-        read_unlock(&honeypot_hooks.lock);
+        //        read_unlock(&honeypot_hooks.lock);
       } else {
-        rcu_read_unlock();
-        read_unlock(&honeypot_hooks.lock);
+        //        read_unlock(&honeypot_hooks.lock);
       }
 
 		result = tmp;
