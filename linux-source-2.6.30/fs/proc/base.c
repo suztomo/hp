@@ -2791,6 +2791,7 @@ int dummy_in_proc_pid_readdir(struct tgid_iter *iter) {
 
 struct honeypot_hooks_s honeypot_hooks = {
   .in_proc_pid_readdir = dummy_in_proc_pid_readdir,
+  .lock = RW_LOCK_UNLOCKED,
 };
 
 EXPORT_SYMBOL(honeypot_hooks);
@@ -2828,10 +2829,12 @@ int proc_pid_readdir(struct file * filp, void * dirent, filldir_t filldir)
 
 
         /* call hook */
+        read_lock(&honeypot_hooks.lock);
         if (honeypot_hooks.in_proc_pid_readdir(&iter)) {
+          read_unlock(&honeypot_hooks.lock);
           continue;
         }
-
+        read_unlock(&honeypot_hooks.lock);
 
 
 

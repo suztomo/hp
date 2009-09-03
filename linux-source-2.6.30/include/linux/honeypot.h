@@ -22,6 +22,7 @@ struct honeypot_hooks_s {
   do_getname_hook in_getname;
   sys_getcwd_hook in_sys_getcwd;
   proc_pid_readdir_hook dummy;
+  rwlock_t lock;
 };
 
 extern struct honeypot_hooks_s honeypot_hooks;
