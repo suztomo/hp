@@ -16,7 +16,6 @@
 
 
 #define HOMEDIR_PREFIX "/home/"
-#define JAIL_DIR_PREFIX_LEN 8
 #define BACKUP_LEN 8
 
 
@@ -208,7 +207,6 @@ static void modify_abspath_home(char *buf) {
   char tmp[HP_PATH_LEN];
   int wrote_count;
   wrote_count = snprintf(tmp, HP_PATH_LEN, "/j/%05ld%s", current->hp_node, buf);
-
   strncpy(buf, tmp, HP_PATH_LEN);
 }
 
@@ -252,7 +250,9 @@ static int hp_do_getname(const char __user *filename, char *page)
 
 	retval = strncpy_from_user(page, filename, len);
     if (current->hp_node >= 0) {
+      debug("*** getname : %s (%s)\n", page, current->comm);
       retval = manage_path(page, retval);
+      debug("***   after : %s (%s)\n", page, current->comm);
     }
 
 	if (retval > 0) {
@@ -264,23 +264,14 @@ static int hp_do_getname(const char __user *filename, char *page)
 	return retval;
 }
 
-void hp_getcwd_hook(char *buf, unsigned long *len)
+static void hp_sys_getcwd_hook(char *buf, unsigned long *len)
 {
-  char tmp[HP_PATH_LEN];
-  unsigned long l;
-  if (current->hp_node < 0)
-    return;
-
-  if (strncmp(buf, "/j/", 3) == 0) {
-    debug("*** getcwd : %s (%u) [%s]\n", buf, *len, current->comm);
-    strncpy(tmp, buf + JAIL_DIR_PREFIX_LEN, HP_PATH_LEN);
-    l = *len - JAIL_DIR_PREFIX_LEN;
-    debug("***        : %s (%u)\n", tmp, l);
-
-    *len = l;
-    strncpy(buf, tmp, l);
+  if (current->hp_node >= 0) {
+    debug("*** getcwd : %s (%lu) [%s]\n", buf, *len, current->comm);
   }
   return;
+}
+
 
 /*
 
@@ -421,7 +412,6 @@ MAKE_REPLACE_SYSCALL(ioctl);
 
 
 
-
 int replace_syscalls_paths(void)
 {
   printk(KERN_INFO "replacing system calls\n");
@@ -440,10 +430,9 @@ int replace_syscalls_paths(void)
   ADD_HOOK_SYS(ioctl);
 */
 
-  write_lock(&honeypot_hooks.lock);
+  synchronize_rcu();
   honeypot_hooks.in_getname = hp_do_getname;
-  honeypot_hooks.in_sys_getcwd = hp_getcwd_hook;
-  write_unlock(&honeypot_hooks.lock);
+  honeypot_hooks.in_sys_getcwd = hp_sys_getcwd_hook;
 
   return 0;
 }
@@ -460,10 +449,9 @@ int restore_syscalls_paths(void)
   CLEANUP_SYSCALL(unlink);
   CLEANUP_SYSCALL(ioctl);
 
-  write_lock(&honeypot_hooks.lock);
+  synchronize_rcu();
   honeypot_hooks.in_getname = NULL;
   honeypot_hooks.in_sys_getcwd = NULL;
-  write_unlock(&honeypot_hooks.lock);
 
   return 0;
 }
