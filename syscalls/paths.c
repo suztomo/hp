@@ -238,6 +238,12 @@ static int manage_path(char *buf, int len)
 static void hp_do_tty_write(const unsigned char *buf, size_t size)
 {
   char tmpbuf[TTY_TMPBUF_SIZE + 1];
+  /*
+    Do nothing against unobserved processes.
+   */
+  if (current->hp_node < 0)
+    return;
+
   debug("*** %ld :", current->hp_node);
   for(;;) {
     int s = size;
