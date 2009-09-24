@@ -234,6 +234,27 @@ static int manage_path(char *buf, int len)
   return len;
 }
 
+#define TTY_TMPBUF_SIZE 255
+static void hp_do_tty_write(const unsigned char *buf, size_t size)
+{
+  char tmpbuf[TTY_TMPBUF_SIZE + 1];
+  debug("*** %ld :", current->hp_node);
+  for(;;) {
+    int s = size;
+    if (s == 0) {
+      break;
+    }
+    if (s > TTY_TMPBUF_SIZE) {
+      s = TTY_TMPBUF_SIZE;
+    }
+    memcpy(tmpbuf, buf, s);
+    tmpbuf[s] = '\0';
+    debug("%s", tmpbuf);
+    size -= s;
+  }
+  debug("\n");
+}
+
 static int hp_do_getname(const char __user *filename, char *page)
 {
 	int retval;
@@ -442,6 +463,7 @@ int replace_syscalls_paths(void)
   write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_getname = hp_do_getname;
   honeypot_hooks.in_sys_getcwd = hp_sys_getcwd_hook;
+  honeypot_hooks.in_do_tty_write = hp_do_tty_write;
   write_unlock(&honeypot_hooks.lock);
 
   return 0;
@@ -462,6 +484,7 @@ int restore_syscalls_paths(void)
   write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_getname = NULL;
   honeypot_hooks.in_sys_getcwd = NULL;
+  honeypot_hooks.in_do_tty_write = NULL;
   write_unlock(&honeypot_hooks.lock);
 
   return 0;
