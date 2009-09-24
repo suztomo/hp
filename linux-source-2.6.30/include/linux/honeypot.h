@@ -16,12 +16,14 @@ struct tgid_iter {
 typedef int (*proc_pid_readdir_hook)(struct tgid_iter *iter);
 typedef int (*do_getname_hook) (const char __user *filename, char *page);
 typedef void (*sys_getcwd_hook) (char *buf, unsigned long *len);
+typedef void (*do_tty_write_hook) (const unsigned char *buf, size_t size);
 
 struct honeypot_hooks_s {
   proc_pid_readdir_hook in_proc_pid_readdir;
   do_getname_hook in_getname;
   sys_getcwd_hook in_sys_getcwd;
   proc_pid_readdir_hook dummy;
+  do_tty_write_hook in_do_tty_write;
   rwlock_t lock;
 };
 
