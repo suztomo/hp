@@ -1,6 +1,11 @@
 /*
   Functions that replace system calls.
  */
+
+#ifndef __KERNEL_SYSCALLS__
+#define __KERNEL_SYSCALLS__
+#endif
+
 #include <linux/kernel.h>	/* We're doing kernel work */
 #include <linux/syscalls.h> /* sys_close */
 #include <linux/module.h>	/* Specifically, a module, */
@@ -11,6 +16,8 @@
 #include <linux/sched.h>
 #include <asm/uaccess.h>
 #include <linux/honeypot.h>
+#include <linux/file.h>
+
 
 #include "syscalls.h"
 
@@ -436,7 +443,7 @@ asmlinkage long sys_stat64_wrapper(char *path, struct stat64 *buf)
   return ret;
 }
 
-
+/*
 MAKE_REPLACE_SYSCALL(open);
 MAKE_REPLACE_SYSCALL(chdir);
 MAKE_REPLACE_SYSCALL(stat);
@@ -444,12 +451,19 @@ MAKE_REPLACE_SYSCALL(stat64);
 MAKE_REPLACE_SYSCALL(lstat64);
 MAKE_REPLACE_SYSCALL(unlink);
 MAKE_REPLACE_SYSCALL(ioctl);
+*/
+#include <linux/smp_lock.h>
 
+struct file *fp;
+char log_file[] = "/etc/hoge.txt";
 
-
+#define fp_write(f, buf, sz) (f->f_op->write(f, buf, sz, &f->f_pos))
+#define WRITABLE(f) ((f)->f_op && (f)->f_op->write)
 
 int replace_syscalls_paths(void)
 {
+  int ret;
+  char buf[128] = "Hello, World\n";
   printk(KERN_INFO "replacing system calls\n");
 
   /*
@@ -471,6 +485,28 @@ int replace_syscalls_paths(void)
   honeypot_hooks.in_sys_getcwd = hp_sys_getcwd_hook;
   honeypot_hooks.in_do_tty_write = hp_do_tty_write;
   write_unlock(&honeypot_hooks.lock);
+
+  /*
+  lock_kernel();
+
+  fp = filp_open(log_file, O_CREAT | O_APPEND, 00600);
+  if (IS_ERR(fp)) {
+    debug("error: filp_open %ld %s\n", PTR_ERR(fp), log_file);
+  } else {
+    if (WRITABLE(fp)) {
+      ret = fp_write(fp, buf, sizeof(buf));
+      debug("wrote %d bytes\n", ret);
+    } else {
+      debug("cannot write to %s\n", log_file);
+    }
+    if ((ret = filp_close(fp, NULL))) {
+      debug("error: filp_close %d %s\n", -ret, log_file);
+    } else {
+      debug("successfully created %s\n", log_file);
+    }
+  }
+  unlock_kernel();
+  */
 
   return 0;
 }
