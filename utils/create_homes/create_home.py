@@ -10,13 +10,14 @@ from shutil import copyfile
 
 HOME_DIR_PATH='/j'
 HOME_DIR_ENTRY_NAME='home_dirs'
+VAR_DIR_ENTRY_NAME='var_dirs'
 STRUCTURE_FILE='../structure.yaml'
 
 def create_file(parent_dir, filename, filepath):
     print("copying %s to %s/%s" % (filepath, parent_dir, filename));
     copyfile(filepath, "%s/%s" % (parent_dir, filename))
 
-def create_dir(parent_dir, target_dir, next):
+def create_dir(parent_dir, target_dir, next = None):
     """
     Creates the target directory under the parent directory.
     next is None or a dictionary whose keys are the names of the
@@ -43,8 +44,16 @@ def main():
     data = yaml.load(text)
     if not HOME_DIR_ENTRY_NAME in data:
         exit()
+    if not VAR_DIR_ENTRY_NAME in data:
+        exit()
     for k in data[HOME_DIR_ENTRY_NAME].keys():
+        if not os.path.isdir(HOME_DIR_PATH + ("/%05d" % int(k))):
+            create_dir(HOME_DIR_PATH, "/%05d" % int(k))
         create_dir(HOME_DIR_PATH, "%05d/home" % int(k), data[HOME_DIR_ENTRY_NAME][k])
+    for k in data[VAR_DIR_ENTRY_NAME].keys():
+        if not os.path.isdir(HOME_DIR_PATH + ("/%05d" % int(k))):
+            create_dir(HOME_DIR_PATH, "/%05d" % int(k))
+        create_dir(HOME_DIR_PATH, "%05d/var" % int(k), data[VAR_DIR_ENTRY_NAME][k])
 
 
 if __name__ == '__main__':

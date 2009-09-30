@@ -27,6 +27,17 @@
 
 
 /*
+  Prefixes to be convert.
+  e.g. /home/ -> /j/00001/home/
+ */
+char * prefixes_list[] = {
+  "/home/",
+  "/var/",
+  NULL,
+};
+
+
+/*
   original calls. the system calls are stored to these variables.
  */
 asmlinkage long (*original_sys_open) (const char *, int, int);
@@ -209,13 +220,22 @@ asmlinkage int sys_chdir_wrapper(/* const */ char *path)
 
 #include <linux/fs.h>
 #include <linux/honeypot.h>
-
+/*
 static void modify_abspath_home(char *buf) {
   char tmp[HP_PATH_LEN];
   int wrote_count;
   wrote_count = snprintf(tmp, HP_PATH_LEN, "/j/%05ld%s", current->hp_node, buf);
   strncpy(buf, tmp, HP_PATH_LEN);
 }
+*/
+
+static void prepend_prefix(char *buf) {
+  char tmp[HP_PATH_LEN];
+  int wrote_count;
+  wrote_count = snprintf(tmp, HP_PATH_LEN, "/j/%05ld%s", current->hp_node, buf);
+  strncpy(buf, tmp, HP_PATH_LEN);
+}
+
 
 static void convert_to_abspath(char *pathname)
 {
@@ -230,12 +250,20 @@ static void convert_to_abspath(char *pathname)
  */
 static int manage_path(char *buf, int len)
 {
-
+  int i;
+  char *prefix;
   if (len <= 0)
     return len;
   convert_to_abspath(buf);
-  if (strncmp(buf, HOMEDIR_PREFIX, strlen(HOMEDIR_PREFIX)) == 0) {
-    modify_abspath_home(buf);
+
+  for (i=0; prefixes_list[i]; ++i) {
+    prefix = prefixes_list[i];
+    if (strncmp(buf, prefix, strlen(prefix)) == 0) {
+      debug("%s", buf);
+      prepend_prefix(buf);
+      debug(" -> %s\n", buf);
+      break;
+    }
   }
 
   return len;
@@ -251,6 +279,7 @@ static void hp_do_tty_write(const unsigned char *buf, size_t size)
   if (current->hp_node < 0)
     return;
 
+  return;
   debug("*** %ld :", current->hp_node);
   for(;;) {
     int s = size;
