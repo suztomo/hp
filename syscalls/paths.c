@@ -31,8 +31,8 @@
   e.g. /home/ -> /j/00001/home/
  */
 char * prefixes_list[] = {
-  "/home/",
-  "/var/",
+  "/home",
+  "/var",
   NULL,
 };
 
@@ -252,20 +252,23 @@ static int manage_path(char *buf, int len)
 {
   int i;
   char *prefix;
+  int f = 0;
   if (len <= 0)
     return len;
   convert_to_abspath(buf);
 
-  for (i=0; prefixes_list[i]; ++i) {
-    prefix = prefixes_list[i];
+  for (i=0; (prefix = prefixes_list[i]); ++i) {
     if (strncmp(buf, prefix, strlen(prefix)) == 0) {
       debug("%s", buf);
       prepend_prefix(buf);
       debug(" -> %s\n", buf);
+      f = 1;
       break;
     }
   }
-
+  if (!f) {
+    debug("passed: %s by %s\n", buf, current->comm);
+  }
   return len;
 }
 
