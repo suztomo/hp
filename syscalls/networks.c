@@ -45,15 +45,34 @@ asmlinkage long (*original_sys_socketcall) (int call, unsigned long *args);
 
 static void print_call_name(int call);
 
+
+#define PORT_SHIFTWIDTH 8
+
 static void get_ip_port_from_sockaddr(unsigned char ip_addr[4], int *port,
-                               struct sockaddr __user * vaddr)
+                               struct sockaddr * vaddr)
 {
-  int shiftwidth = 8;
+  int shiftwidth = PORT_SHIFTWIDTH;
   *port = vaddr->sa_data[1] | (vaddr->sa_data[0] << shiftwidth);
   memcpy(ip_addr, vaddr->sa_data + 2, sizeof(unsigned char) * 4);
   return;
 }
 
+static void set_ip_port_to_sockaddr(unsigned char ip_addr[4], int port,
+                                    struct sockaddr * vaddr)
+{
+  int i;
+  int shiftwidth = PORT_SHIFTWIDTH;
+  if (ip_addr) {
+    for (i=0; i<4; ++i) {
+      /* sa_data[2], sa_data[3] .. sa_data[5] */
+      vaddr->sa_data[i+2] = ip_addr[i];
+    }
+  }
+  if (port > 0) {
+    vaddr->sa_data[0] = 0xff & (port >> shiftwidth);
+    vaddr->sa_data[1] = 0xff & port;
+  }
+}
 
 static int manage_afinet_connect(struct sockaddr __user * uservaddr, int addrlen,
                           struct sockaddr * copied_vaddr)
@@ -63,7 +82,8 @@ static int manage_afinet_connect(struct sockaddr __user * uservaddr, int addrlen
   int i, j,addr_is_owned;
   int to_node = -1;
   int to_port;
-  int shiftwidth = 8;
+  unsigned char localhost_addr[] = {127, 0, 0, 1};
+
   get_ip_port_from_sockaddr(ip_addr, &vport, copied_vaddr);
 
   debug("*** port %d.\n", vport);
@@ -101,37 +121,40 @@ static int manage_afinet_connect(struct sockaddr __user * uservaddr, int addrlen
   }
   if (to_node > 0) {
     to_port = hp_node_port[to_node];
-    copied_vaddr->sa_data[0] = 0xff & (to_port >> shiftwidth);
-    copied_vaddr->sa_data[1] = 0xff & to_port;
-    debug("*** redirected to localhost:%d.\n", to_port);
+  } else {
+    to_port = 0;
   }
-  /* port has two bytes length */
-  copied_vaddr->sa_data[2] = 127;
-  copied_vaddr->sa_data[3] = 0;
-  copied_vaddr->sa_data[4] = 0;
-  copied_vaddr->sa_data[5] = 1;
+  /* Do nothing about the port when the port is 0. */
+  set_ip_port_to_sockaddr(localhost_addr, to_port, copied_vaddr);
+  debug("*** redirected to localhost:%d.\n", to_port);
+
   if (copy_to_user(uservaddr, copied_vaddr, addrlen)) {
     return -1;
   }
   return 0;
 }
 
-
+#define HTTP_PORT_START 300
 
 static int manage_afinet_bind(struct sockaddr __user * uservaddr, int addrlen,
-                          struct sockaddr * copied_vaddr)
+                              struct sockaddr * copied_vaddr)
 {
   int vport = 0;
   unsigned char ip_addr[4];
+  int to_port;
+  unsigned char localhost_addr[] = {127, 0, 0, 1};
   get_ip_port_from_sockaddr(ip_addr, &vport, copied_vaddr);
-
   debug("*** binding port %d.\n", vport);
 
-  /* port has two bytes length */
-  copied_vaddr->sa_data[2] = 127;
-  copied_vaddr->sa_data[3] = 0;
-  copied_vaddr->sa_data[4] = 0;
-  copied_vaddr->sa_data[5] = 1;
+  /*
+    Changes binding port to 30080, 30180, 30280,...,
+    if the port is 80.
+   */
+  if (vport == 80) {
+    to_port = (HTTP_PORT_START + current->hp_node) * 100 + 80;
+    set_ip_port_to_sockaddr(localhost_addr, to_port, copied_vaddr);
+    debug("*** redirected to localhost:%d.\n", to_port);
+  }
   if (copy_to_user(uservaddr, copied_vaddr, addrlen)) {
     return -1;
   }
@@ -151,7 +174,7 @@ static long sys_bind_wrapper(int call,  unsigned long __user * args,
 
   /* Do nothing against non-observed node */
   if (current->hp_node < 0)
-    return sys_connect(fd, uservaddr, addrlen);
+    return sys_bind(fd, uservaddr, addrlen);
 
   copied_vaddr = kmalloc(addrlen, GFP_KERNEL);
   saved_vaddr = kmalloc(addrlen, GFP_KERNEL);

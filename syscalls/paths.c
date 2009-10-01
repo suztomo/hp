@@ -259,16 +259,18 @@ static int manage_path(char *buf, int len)
 
   for (i=0; (prefix = prefixes_list[i]); ++i) {
     if (strncmp(buf, prefix, strlen(prefix)) == 0) {
-      debug("%s", buf);
+      //      debug("%s", buf);
       prepend_prefix(buf);
-      debug(" -> %s\n", buf);
+      //      debug(" -> %s\n", buf);
       f = 1;
       break;
     }
   }
+  /*
   if (!f) {
     debug("passed: %s by %s\n", buf, current->comm);
   }
+  */
   return len;
 }
 
