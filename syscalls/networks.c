@@ -45,38 +45,57 @@ asmlinkage long (*original_sys_socketcall) (int call, unsigned long *args);
 
 static void print_call_name(int call);
 
-static int manage_afinet(struct sockaddr __user * uservaddr, int addrlen,
+static void get_ip_port_from_sockaddr(unsigned char ip_addr[4], int *port,
+                               struct sockaddr __user * vaddr)
+{
+  int shiftwidth = 8;
+  *port = vaddr->sa_data[1] | (vaddr->sa_data[0] << shiftwidth);
+  memcpy(ip_addr, vaddr->sa_data + 2, sizeof(unsigned char) * 4);
+  return;
+}
+
+
+static int manage_afinet_connect(struct sockaddr __user * uservaddr, int addrlen,
                           struct sockaddr * copied_vaddr)
 {
   int vport = 0;
   unsigned char ip_addr[4];
-  int i, j, t;
+  int i, j,addr_is_owned;
   int to_node = -1;
   int to_port;
   int shiftwidth = 8;
-  memcpy(ip_addr, copied_vaddr->sa_data + 2, sizeof(ip_addr));
-
-  vport = copied_vaddr->sa_data[1] | (copied_vaddr->sa_data[0] << shiftwidth);
+  get_ip_port_from_sockaddr(ip_addr, &vport, copied_vaddr);
 
   debug("*** port %d.\n", vport);
+  /*
+    if port is 53, we do nothing.
+   */
   if (vport == 53) {
     return 0;
   }
 
+  /*
+    For each existing node, checks if the ip address is owned by the node.
+   */
   for (i=1; i<HP_NODE_NUM+1; i++) {
-    t = 1;
+    addr_is_owned = 1;
     for (j=0; j<4; ++j) {
       if (ip_addr[j] != hp_node_ipaddr[i][j]) {
-        t = 0;
+        addr_is_owned = 0;
         debug("%d[%d]: %d and %d.\n", i, j, ip_addr[j], hp_node_ipaddr[i][j]);
         break;
       }
     }
-    if (t) {
+    if (addr_is_owned) {
       to_node = i;
       break;
     }
+
     if (hp_node_ipaddr[i][0] == 0) {
+      /*
+        The last entry
+        The number of hp_node_ipaddr is smaller than HP_NODE_NUM.
+       */
       break;
     }
   }
@@ -96,6 +115,76 @@ static int manage_afinet(struct sockaddr __user * uservaddr, int addrlen,
   }
   return 0;
 }
+
+
+
+static int manage_afinet_bind(struct sockaddr __user * uservaddr, int addrlen,
+                          struct sockaddr * copied_vaddr)
+{
+  int vport = 0;
+  unsigned char ip_addr[4];
+  get_ip_port_from_sockaddr(ip_addr, &vport, copied_vaddr);
+
+  debug("*** binding port %d.\n", vport);
+
+  /* port has two bytes length */
+  copied_vaddr->sa_data[2] = 127;
+  copied_vaddr->sa_data[3] = 0;
+  copied_vaddr->sa_data[4] = 0;
+  copied_vaddr->sa_data[5] = 1;
+  if (copy_to_user(uservaddr, copied_vaddr, addrlen)) {
+    return -1;
+  }
+  return 0;
+}
+
+
+static long sys_bind_wrapper(int call,  unsigned long __user * args,
+                                int fd, struct sockaddr __user * uservaddr,
+                                int addrlen)
+{
+  long ret;
+  struct sockaddr *copied_vaddr;
+  struct sockaddr *saved_vaddr;
+  char ip_port;
+  char ip_addr[4];
+
+  /* Do nothing against non-observed node */
+  if (current->hp_node < 0)
+    return sys_connect(fd, uservaddr, addrlen);
+
+  copied_vaddr = kmalloc(addrlen, GFP_KERNEL);
+  saved_vaddr = kmalloc(addrlen, GFP_KERNEL);
+  if (copy_from_user(copied_vaddr, uservaddr, addrlen)) {
+    ret =  -EFAULT;
+    goto out;
+  }
+
+  memcpy(saved_vaddr, copied_vaddr, addrlen);
+
+  switch(copied_vaddr->sa_family) {
+  case AF_INET:
+    ip_port = copied_vaddr->sa_data[1];
+    memcpy(ip_addr, &copied_vaddr->sa_data[2], 4);
+    if (manage_afinet_bind(uservaddr, addrlen, copied_vaddr)) {
+      debug("Error occured when manipulating AF_INET socket\n");
+    } else {
+    }
+    break;
+  case AF_UNIX:
+    /* Local */
+    break;
+  default:
+    break;
+  }
+  ret = sys_bind(fd, uservaddr, addrlen);
+  copy_to_user(uservaddr, saved_vaddr, addrlen);
+ out:
+  kfree(copied_vaddr);
+  kfree(saved_vaddr);
+  return ret;
+}
+
 
 static long sys_connect_wrapper(int call,  unsigned long __user * args,
                                 int fd, struct sockaddr __user * uservaddr,
@@ -124,8 +213,8 @@ static long sys_connect_wrapper(int call,  unsigned long __user * args,
   case AF_INET:
     ip_port = copied_vaddr->sa_data[1];
     memcpy(ip_addr, &copied_vaddr->sa_data[2], 4);
-    if (manage_afinet(uservaddr, addrlen, copied_vaddr)) {
-      printk(" missed ");
+    if (manage_afinet_connect(uservaddr, addrlen, copied_vaddr)) {
+      debug("Error occured when manipulating AF_INET socket\n");
     } else {
     }
     break;
@@ -135,13 +224,8 @@ static long sys_connect_wrapper(int call,  unsigned long __user * args,
   default:
     break;
   }
-
-
   ret = sys_connect(fd, uservaddr, addrlen);
-
   copy_to_user(uservaddr, saved_vaddr, addrlen);
-
-
  out:
   kfree(copied_vaddr);
   kfree(saved_vaddr);
@@ -169,6 +253,9 @@ asmlinkage long sys_socketcall_wrapper(int call, unsigned long __user * args)
   switch(call) {
   case SYS_CONNECT:
     err = sys_connect_wrapper(call, args, a0, (struct sockaddr __user *) a1, a[2]);
+    break;
+  case SYS_BIND:
+    err = sys_bind_wrapper(call, args, a0, (struct sockaddr __user *) a1, a[2]);
     break;
   default:
     // Call the original.

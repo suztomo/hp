@@ -2455,6 +2455,6 @@ EXPORT_SYMBOL(kernel_sock_shutdown);
 
 
 EXPORT_SYMBOL(sys_connect);
+EXPORT_SYMBOL(sys_bind);
 EXPORT_SYMBOL(sys_sendto);
-
 
