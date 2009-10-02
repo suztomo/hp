@@ -1,0 +1,12 @@
+Apache2 experiment
+
+The configuration file of Apache has been modified so that the virtual host
+can be send response to a request which uses arbitrary port number.
+
+The /var/log, which is used to store logs, are created by
+the script hp/utils/create_home/create_home.py as well as /var/log/apache2
+and /var/run directory.
+
+The apache works on their ports individually after following command:
+        ssh suzuki@localhost -p 10422 apache2ctl start
+The number 10422 is the SSH server port of virtual host port.

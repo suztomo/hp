@@ -1,10 +1,85 @@
 var_dirs:
   1:
-    log: ~
+    log:
+      apache2: ~
+    run: ~
+    www:
+      index.html: "/var/www/index.html"
+    lock:
+      apache2: ~
   2:
-    log: ~
+    log:
+      apache2: ~
+    run: ~
+    www:
+      index.html: "/var/www/index.html"
+    lock:
+      apache2: ~
   3:
-    log: ~
+    log:
+      apache2: ~
+    run: ~
+    www:
+      index.html: "/var/www/index.html"
+    lock:
+      apache2: ~
+  4:
+    log:
+      apache2: ~
+    run: ~
+    www:
+      index.html: "/var/www/index.html"
+    lock:
+      apache2: ~
+  5:
+    log:
+      apache2: ~
+    run: ~
+    www:
+      index.html: "/var/www/index.html"
+    lock:
+      apache2: ~
+  6:
+    log:
+      apache2: ~
+    run: ~
+    www:
+      index.html: "/var/www/index.html"
+    lock:
+      apache2: ~
+  7:
+    log:
+      apache2: ~
+    run: ~
+    www:
+      index.html: "/var/www/index.html"
+    lock:
+      apache2: ~
+  8:
+    log:
+      apache2: ~
+    run: ~
+    www:
+      index.html: "/var/www/index.html"
+    lock:
+      apache2: ~
+  9:
+    log:
+      apache2: ~
+    run: ~
+    www:
+      index.html: "/var/www/index.html"
+    lock:
+      apache2: ~
+  10:
+    log:
+      apache2: ~
+    run: ~
+    www:
+      index.html: "/var/www/index.html"
+    lock:
+      apache2: ~
+
 home_dirs:
   1:
     suzuki:
@@ -31,9 +106,11 @@ home_dirs:
   4:
     mitou:
       host4: ~
+    suzuki: ~
   5:
     mitou:
       host3: ~
+    suzuki: ~
   6:
     mitou:
       host7: ~
