@@ -32,7 +32,7 @@ LOOP_COUNT=0
 echo "Launching Apache WWW Server on Virtual Hosts [$FROM_PORT_INDEX:$TO_PORT_INDEX:$SKIP]"
 
 while [ $I -lt $TO_PORT_INDEX ]; do
-    CMD="ssh suzuki@localhost -p $I apache2ctl start"
+    CMD="ssh suzuki@localhost -p $I apache2ctl_suid start"
     echo $CMD
     $CMD
     LOOP_COUNT=`expr $LOOP_COUNT + 1`
