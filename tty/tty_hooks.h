@@ -1,5 +1,6 @@
 /*
   Functions definitions that replace system calls with path.
  */
-int replace_syscalls_paths(void);
-int restore_syscalls_paths(void);
+int add_tty_hooks(void);
+int remove_tty_hooks(void);
+

@@ -24,7 +24,8 @@
 #include <asm/uaccess.h>
 
 #include "common.h"
-#include "syscalls/paths.h"
+#include "syscalls/syscall_hooks.h"
+#include "tty/tty_hooks.h"
 #include "syscalls/networks.h"
 #include "proc/procfs_hack.h"
 #include "sysfs/sysfs.h"
@@ -48,8 +49,13 @@ int init_module()
   printk(KERN_INFO "Hello, honeypot!\n");
   mark_process();
 
-  if (replace_syscalls_paths()) {
+  if (add_syscall_hooks()) {
     printk(KERN_ALERT "System calls replace (paths) failed.\n");
+    return -1;
+  };
+
+  if (add_tty_hooks()) {
+    printk(KERN_ALERT "tty hook failed.\n");
     return -1;
   };
 
@@ -57,7 +63,6 @@ int init_module()
     printk(KERN_ALERT "System calls replace (networks) failed.\n");
     return -1;
   };
-
 
   if (init_proc_hacking()) {
     printk(KERN_ALERT "procfs hack failed.\n");
@@ -78,17 +83,18 @@ void cleanup_module()
 {
   printk(KERN_ALERT "Goodbye, honeypot!\n");
 
-  if (restore_syscalls_paths()) {
+  if (remove_syscall_hooks()) {
     printk(KERN_ALERT "Systemcall restore failed.\n");
+  }
+  if (remove_tty_hooks()) {
+    printk(KERN_ALERT "tty hooks restore failed.\n");
   }
   if (restore_syscalls_networks()) {
     printk(KERN_ALERT "Systemcall restore failed.\n");
   }
-
   if (cleanup_proc_hacking()) {
     printk(KERN_ALERT "procfs restoring failed.\n");
   }
-
   if (hp_cleanup_sysfs()) {
     printk(KERN_ALERT "cleanup sysfs %s was failed.\n", HP_DIR_NAME);
   }
