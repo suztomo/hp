@@ -7,7 +7,6 @@
 int main(int argc, char *argv[])
 {
   int ret;
-  printf("%d\n", geteuid());
   ret = execvp("apache2ctl", argv);
   if (ret) {
     perror("execvp");

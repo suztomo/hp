@@ -25,17 +25,40 @@
 #include <linux/honeypot.h>
 
 #define TTY_TMPBUF_SIZE 255
+#define TTY_STARTTIME_GAP_SEC 1
 static void hp_do_tty_write(struct tty_struct *tty, size_t size)
 {
   char tmpbuf[TTY_TMPBUF_SIZE + 1];
   char *buf = tty->write_buf;
+  static long int start_sec = -1;
+  static long int start_usec = 0;
+  long int cur_sec = 0, cur_usec;
+  struct timeval tv;
+  int err;
+
   /*
     Do nothing against unobserved processes.
    */
   if (current->hp_node < 0)
     return;
 
-  debug("*** %ld (%s):", current->hp_node, current->comm);
+  do_gettimeofday(&tv);
+
+  if (-1 == start_sec) {
+    start_sec = tv.tv_sec - TTY_STARTTIME_GAP_SEC;
+    start_usec = tv.tv_usec;
+  }
+  if (tv.tv_usec > start_usec) {
+    cur_sec = tv.tv_sec - start_sec;
+    cur_usec = tv.tv_usec - start_usec;
+  } else {
+    // Borrowing subtraction
+    cur_sec = tv.tv_sec - start_sec - 1;
+    cur_usec = 1000000 + tv.tv_usec - start_usec;
+  }
+
+  debug("*** %ld (%s,%s) %ld.%ld:", current->hp_node, tty->name, current->comm,
+        cur_sec, cur_usec);
   for(;;) {
     int s = size;
     if (s == 0) {
