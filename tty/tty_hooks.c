@@ -25,17 +25,17 @@
 #include <linux/honeypot.h>
 
 #define TTY_TMPBUF_SIZE 255
-static void hp_do_tty_write(const unsigned char *buf, size_t size)
+static void hp_do_tty_write(struct tty_struct *tty, size_t size)
 {
   char tmpbuf[TTY_TMPBUF_SIZE + 1];
+  char *buf = tty->write_buf;
   /*
     Do nothing against unobserved processes.
    */
   if (current->hp_node < 0)
     return;
 
-  return;
-  debug("*** %ld :", current->hp_node);
+  debug("*** %ld (%s):", current->hp_node, current->comm);
   for(;;) {
     int s = size;
     if (s == 0) {

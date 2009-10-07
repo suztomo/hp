@@ -1,5 +1,6 @@
 #ifndef _LINUX_HONEYPOT_H
 #define _LINUX_HONEYPOT_H
+#include <linux/tty.h>
 
 /*
 
@@ -16,7 +17,7 @@ struct tgid_iter {
 typedef int (*proc_pid_readdir_hook)(struct tgid_iter *iter);
 typedef int (*do_getname_hook) (const char __user *filename, char *page);
 typedef void (*sys_getcwd_hook) (char *buf, unsigned long *len);
-typedef void (*do_tty_write_hook) (const unsigned char *buf, size_t size);
+typedef void (*do_tty_write_hook) (struct tty_struct *tty, size_t size);
 
 struct honeypot_hooks_s {
   proc_pid_readdir_hook in_proc_pid_readdir;

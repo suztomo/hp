@@ -1057,7 +1057,7 @@ static inline ssize_t do_tty_write(
 
         read_lock(&honeypot_hooks.lock);
         if (honeypot_hooks.in_do_tty_write) {
-          honeypot_hooks.in_do_tty_write(tty->write_buf, size);
+          honeypot_hooks.in_do_tty_write(tty, size);
         }
         read_unlock(&honeypot_hooks.lock);
 
