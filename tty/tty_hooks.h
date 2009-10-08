@@ -4,10 +4,8 @@
 int add_tty_hooks(void);
 int remove_tty_hooks(void);
 
-
-
-
 struct tty_output {
+  struct list_head list;
   /* Time when it recorded from when it started to record */
   long int sec;
   long int usec;
@@ -21,12 +19,10 @@ struct tty_output {
   char *buf;
 };
 
+#include <linux/list.h>
 
-struct tty_output_saver {
+struct tty_output_server {
   /* The contents of tty_output */
-  struct tty_output *contents;
-  /* The size of the tty_output */
-  size_t size;
-  /* the tail element */
-  struct tty_output *cur;
-}
+  struct list_head list;
+  rwlock_t lock;
+};
