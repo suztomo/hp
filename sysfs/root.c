@@ -20,25 +20,57 @@ struct dentry *hp_dentries[HP_DENTRY_NUM];
 unsigned char hp_node_ipaddr[HP_NODE_NUM+1][4];
 int hp_node_port[HP_NODE_NUM+1];
 
+static inline const unsigned char *file_fname(struct file *file)
+{
+  /* Null terminated? */
+  return file->f_path.dentry->d_name.name;
+}
+
+static inline const unsigned char *file_parent_dname(struct file *file)
+{
+  /* Null terminated? */
+  return file->f_path.dentry->d_parent->d_name.name;
+}
+
 static int hp_open_control(int type, struct file *file)
 {
   struct hp_io_buffer *buf = hp_alloc(sizeof(struct hp_io_buffer));
+  const char *fname;
+  const char *dname;
   buf->writebuf_size = sizeof(buf->write_buf);
   buf->write_cur = 0;
   buf->read_cur = 0;
   mutex_init(&buf->io_sem);
   file->private_data = buf;
+  debug("*** opening %s in %s\n", file_fname(file), file_parent_dname(file));
   switch(type) {
   case HP_DENTRY_KEY_NODECONF_IP:
+    /*
+      security/hp/ip_node
+     */
     buf->write = hp_nodeconf_ip_write;
     hp_nodeconf_ip_setup_readbuf(buf);
     break;
   case HP_DENTRY_KEY_NODECONF_PORT:
+    /*
+      security/hp/ip_port
+    */
     buf->write = hp_nodeconf_port_write;
     hp_nodeconf_port_setup_readbuf(buf);
     break;
+  case HP_DENTRY_KEY_TTY_OUTPUT_NODE_TTY:
+    /*
+      security/hp/tty_output/73/pty5
+     */
+    /* tty_name, e.g., "pty5" */
+    fname = file_fname(file);
+    /* hp_node, e.g., "73" */
+    dname = file_parent_dname(file);
+    buf->write = NULL;
+    hp_tty_output_setup_readbuf(buf);
+    break;
   default:
-    debug( "invalid type in %s.\n", __func__);
+    break;
   }
   return 0;
 }
@@ -222,9 +254,11 @@ int hp_init_sysfs(void)
   if (hp_init_interfaces()) {
     debug("Failed creating interfaces");
   }
+  /*
   if (hp_init_tty_output_sysfs()) {
     debug("Failed creating subdirs of tty_output");
   }
+  */
 
   /* Success */
   return 0;

@@ -70,7 +70,7 @@ int hp_nodeconf_port_write(struct hp_io_buffer *buf)
 void hp_nodeconf_ip_setup_readbuf(struct hp_io_buffer *io_buf)
 {
   /* 
-     0001: XXX.XXX.XXX.XXX\n (23 chars)
+     0001: XXX.XXX.XXX.XXX\n (At most 23 chars)
    */
   int wrote_count = 0;
   int i;
@@ -93,7 +93,7 @@ void hp_nodeconf_ip_setup_readbuf(struct hp_io_buffer *io_buf)
 void hp_nodeconf_port_setup_readbuf(struct hp_io_buffer *io_buf)
 {
   /* 
-     0001: 10022\n (12 chars)
+     0001: 10022\n (At most 12 chars)
    */
   int wrote_count = 0;
   int i;

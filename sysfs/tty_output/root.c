@@ -68,9 +68,9 @@ struct list_head node_tty_list[HP_TTY_OUTPUT_DENTRY_NUM];
   The operations to show the tty outputs.
  */
 static const struct file_operations hp_tty_output_operations = {
-  .open = hp_tty_output_open,
+  /*  .open = NULL,
   .release = hp_tty_output_release,
-  .read = hp_tty_output_read,
+  .read = hp_tty_output_read,*/
 };
 
 /*

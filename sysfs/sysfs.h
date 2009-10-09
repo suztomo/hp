@@ -12,6 +12,11 @@
 #define HP_DENTRY_KEY_NODECONF_IP 1
 #define HP_DENTRY_KEY_NODECONF_PORT 2
 #define HP_DENTRY_KEY_TTY_OUTPUT 3
+/*
+  The two below are not entries in hp_dentries[].
+ */
+#define HP_DENTRY_KEY_TTY_OUTPUT_NODE 4
+#define HP_DENTRY_KEY_TTY_OUTPUT_NODE_TTY 5
 
 #define HP_TTY_OUTPUT_DIR_NAME "tty_output"
 #define HP_TTY_OUTPUT_DENTRY_NUM 1000
@@ -63,9 +68,10 @@ int hp_nodeconf_ip_write(struct hp_io_buffer *buf);
 void hp_nodeconf_ip_setup_readbuf(struct hp_io_buffer *io_buf);
 int hp_nodeconf_port_write(struct hp_io_buffer *buf);
 void hp_nodeconf_port_setup_readbuf(struct hp_io_buffer *io_buf);
+void hp_tty_output_setup_readbuf(struct hp_io_buffer *io_buf);
 
-extern int hp_tty_output_open(struct inode *inode, struct file *file);
-extern ssize_t hp_tty_output_read(struct file *file, char __user *buf, size_t count,
+int hp_tty_output_open(struct inode *inode, struct file *file);
+ssize_t hp_tty_output_read(struct file *file, char __user *buf, size_t count,
                                   loff_t *ppos);
 extern int hp_tty_output_release(struct inode *inode, struct file *file);
 #define HP_SYSFS
