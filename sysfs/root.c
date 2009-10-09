@@ -14,7 +14,7 @@
 
 
 /* Initialized to NULL */
-static struct dentry *hp_dentries[HP_DENTRY_NUM];
+struct dentry *hp_dentries[HP_DENTRY_NUM];
 
 /* Initialized to zero */
 unsigned char hp_node_ipaddr[HP_NODE_NUM+1][4];
@@ -174,6 +174,23 @@ static void hp_create_entry(const char *name, const mode_t mode,
   hp_dentries[key] = hp_file_entry;
 }
 
+void hp_create_dir_entry(const char *dirname, struct dentry *parent, const u8 key)
+{
+  struct dentry *de = securityfs_create_dir(dirname, parent);
+  if (!de) {
+    alert("cannot create %s directory.\n", dirname);
+  }
+  if ((int)de == -ENODEV) {
+    /*
+      Parent is missing
+     */
+    alert("securityfs is not enabled in this machine.\n");
+    de = NULL;
+  }
+  hp_dentries[key] = de;
+  return;
+}
+
 static int hp_init_interfaces(void)
 {
   struct dentry *hp_root = hp_dentries[HP_DENTRY_KEY_ROOT];
@@ -182,7 +199,7 @@ static int hp_init_interfaces(void)
   }
   hp_create_entry("node_ip",   0666, hp_root, HP_DENTRY_KEY_NODECONF_IP);
   hp_create_entry("node_port", 0666, hp_root, HP_DENTRY_KEY_NODECONF_PORT);
-
+  hp_create_dir_entry(HP_TTY_OUTPUT_DIR_NAME, hp_root, HP_DENTRY_KEY_TTY_OUTPUT);
   return 0;
 }
 
@@ -205,6 +222,9 @@ int hp_init_sysfs(void)
   if (hp_init_interfaces()) {
     debug("Failed creating interfaces");
   }
+  if (hp_init_tty_output_sysfs()) {
+    debug("Failed creating subdirs of tty_output");
+  }
 
   /* Success */
   return 0;
@@ -217,7 +237,7 @@ int hp_cleanup_sysfs(void)
     /* The root directory ('security/hp/') must be removed at last,
        that is, HP_DENTRY_KEY_ROOT must be 0.
      */
-    struct dentry *de = hp_dentries[HP_DENTRY_NUM - i -1];
+    struct dentry *de = hp_dentries[HP_DENTRY_NUM - i - 1];
     if (de) {
       debug( "removing.\n");
       securityfs_remove(de);
