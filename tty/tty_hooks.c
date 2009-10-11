@@ -26,9 +26,7 @@
 #include <linux/honeypot.h>
 
 #include "tty_hooks.h"
-
-#define TTY_TMPBUF_SIZE 255
-#define TTY_STARTTIME_GAP_SEC 1
+#include "../sysfs/sysfs.h"
 
 struct tty_output_server tty_output_server;
 
@@ -37,6 +35,7 @@ static void record_tty_output(long int hp_node, struct tty_struct *tty,
                               size_t size, char *buf)
 {
   struct tty_output *tty_o;
+  int ret;
   tty_o = kmalloc(sizeof(struct tty_output), GFP_KERNEL);
   tty_o->sec = sec;
   tty_o->usec = usec;
@@ -48,10 +47,13 @@ static void record_tty_output(long int hp_node, struct tty_struct *tty,
    */
   memcpy(tty_o->buf, buf, size);
   memcpy(tty_o->tty_name, tty->name, sizeof(tty_o->tty_name));
-  tty_o->tty_name[sizeof(tty_o->tty_name) - 1] = '\0';  // Ends with NULL charactor
+  // Ends with NULL charactor
+  tty_o->tty_name[sizeof(tty_o->tty_name) - 1] = '\0';
   write_lock(&tty_output_server.lock);
   list_add_tail(&tty_o->list, &tty_output_server.list);
   write_unlock(&tty_output_server.lock);
+
+  ret = create_dentry_tty_output_hp_node_tty(hp_node, tty->name);
   return;
 }
 

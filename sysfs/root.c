@@ -10,6 +10,8 @@
 #include <linux/seq_file.h>
 #include <asm/uaccess.h>
 
+#include <linux/string.h>
+
 #include "sysfs.h"
 
 
@@ -20,29 +22,40 @@ struct dentry *hp_dentries[HP_DENTRY_NUM];
 unsigned char hp_node_ipaddr[HP_NODE_NUM+1][4];
 int hp_node_port[HP_NODE_NUM+1];
 
-static inline const unsigned char *file_fname(struct file *file)
+inline const unsigned char *file_fname(struct file *file)
 {
   /* Null terminated? */
   return file->f_path.dentry->d_name.name;
 }
 
-static inline const unsigned char *file_parent_dname(struct file *file)
+inline const unsigned char *file_parent_dname(struct file *file)
 {
   /* Null terminated? */
   return file->f_path.dentry->d_parent->d_name.name;
 }
+
+inline const unsigned char *dentry_fname(struct dentry *de)
+{
+  return de->d_name.name;
+}
+
+inline const unsigned char *dentry_parent_dname(struct dentry *de)
+{
+  return de->d_parent->d_name.name;
+}
+
 
 static int hp_open_control(int type, struct file *file)
 {
   struct hp_io_buffer *buf = hp_alloc(sizeof(struct hp_io_buffer));
   const char *fname;
   const char *dname;
+  int dname_i;
   buf->writebuf_size = sizeof(buf->write_buf);
   buf->write_cur = 0;
   buf->read_cur = 0;
   mutex_init(&buf->io_sem);
   file->private_data = buf;
-  debug("*** opening %s in %s\n", file_fname(file), file_parent_dname(file));
   switch(type) {
   case HP_DENTRY_KEY_NODECONF_IP:
     /*
@@ -66,8 +79,22 @@ static int hp_open_control(int type, struct file *file)
     fname = file_fname(file);
     /* hp_node, e.g., "73" */
     dname = file_parent_dname(file);
+    dname_i = simple_strtol(dname, NULL, 10);
     buf->write = NULL;
-    hp_tty_output_setup_readbuf(buf);
+    hp_tty_output_setup_readbuf(buf, dname_i, fname);
+    break;
+  case HP_DENTRY_KEY_TTY_OUTPUT_SETUP:
+    /*
+      security/hp/
+      setups security/hp/tty_output/
+     */
+    buf->write = NULL;
+    hp_tty_output_prepare_output_files();
+    /* Dummy contents */
+    buf->read_buf = hp_alloc(1);
+    buf->read_buf[0] = '0';
+    buf->readbuf_size = 1;
+
     break;
   default:
     break;
@@ -75,15 +102,15 @@ static int hp_open_control(int type, struct file *file)
   return 0;
 }
 
-static int hp_open(struct inode *inode, struct file *file)
+int hp_open(struct inode *inode, struct file *file)
 {
   const int key = ((u8 *) file->f_path.dentry->d_inode->i_private)
     -((u8 *) NULL);
   return hp_open_control(key, file);
 }
 
-static ssize_t hp_read_control(struct file *file, char __user *buf, size_t count,
-                               loff_t *ppos)
+static ssize_t hp_read_control(struct file *file, char __user *buf,
+                               size_t count, loff_t *ppos)
 {
   struct hp_io_buffer * io_buf = file->private_data;
   ssize_t to_write = count;
@@ -106,8 +133,8 @@ static ssize_t hp_read_control(struct file *file, char __user *buf, size_t count
   return to_write;
 }
 
-static ssize_t hp_read(struct file *file, char __user *buf, size_t count,
-                       loff_t *ppos)
+ssize_t hp_read(struct file *file, char __user *buf,
+                       size_t count, loff_t *ppos)
 {
   return hp_read_control(file, buf, count, ppos);
 }
@@ -126,7 +153,7 @@ static int hp_release_control(struct inode *inode, struct file *file)
   return 0;
 }
 
-static int hp_release(struct inode *inode, struct file *file)
+int hp_release(struct inode *inode, struct file *file)
 {
   return hp_release_control(inode, file);
 }
@@ -177,7 +204,7 @@ static int hp_write_control(struct file *file, const char __user *from_data,
   return ret;
 }
 
-static int hp_write(struct file *file, const char __user *buf,
+int hp_write(struct file *file, const char __user *buf,
                     size_t count, loff_t *ppos)
 {
   return hp_write_control(file, buf, count, ppos);
@@ -195,8 +222,9 @@ static void hp_create_entry(const char *name, const mode_t mode,
                        struct dentry *parent, const u8 key)
 {
   struct dentry *hp_file_entry;
-  hp_file_entry = securityfs_create_file(name, mode, parent, ((u8 *)NULL) + key,
-                         &hp_operations);
+  hp_file_entry = securityfs_create_file(name, mode, parent,
+                                         ((u8 *)NULL) + key,
+                                         &hp_operations);
   if (hp_file_entry) {
     debug("Ceated %s in sysfs.\n", name);
   } else {
@@ -231,6 +259,8 @@ static int hp_init_interfaces(void)
   }
   hp_create_entry("node_ip",   0666, hp_root, HP_DENTRY_KEY_NODECONF_IP);
   hp_create_entry("node_port", 0666, hp_root, HP_DENTRY_KEY_NODECONF_PORT);
+  hp_create_entry("tty_output_setup", 0222, hp_root,
+                  HP_DENTRY_KEY_TTY_OUTPUT_SETUP);
   hp_create_dir_entry(HP_TTY_OUTPUT_DIR_NAME, hp_root, HP_DENTRY_KEY_TTY_OUTPUT);
   return 0;
 }
