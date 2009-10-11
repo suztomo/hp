@@ -81,7 +81,7 @@ static void hp_do_tty_write(struct tty_struct *tty, size_t size)
   /*
     Calculate relative time from start.
    */
-  if (tv.tv_usec > start_usec) {
+  if (tv.tv_usec >= start_usec) {
     cur_sec = tv.tv_sec - start_sec;
     cur_usec = tv.tv_usec - start_usec;
   } else {
