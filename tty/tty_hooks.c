@@ -28,14 +28,16 @@
 #include "tty_hooks.h"
 #include "../sysfs/sysfs.h"
 
-struct tty_output_server tty_output_server;
+struct tty_output_server tty_output_server = {
+  .list = LIST_HEAD_INIT(tty_output_server.list),
+  .lock = RW_LOCK_UNLOCKED,
+};
 
 static void record_tty_output(long int hp_node, struct tty_struct *tty,
                               long int sec, long int usec,
                               size_t size, char *buf)
 {
   struct tty_output *tty_o;
-  int ret;
   tty_o = kmalloc(sizeof(struct tty_output), GFP_KERNEL);
   tty_o->sec = sec;
   tty_o->usec = usec;
@@ -52,8 +54,6 @@ static void record_tty_output(long int hp_node, struct tty_struct *tty,
   write_lock(&tty_output_server.lock);
   list_add_tail(&tty_o->list, &tty_output_server.list);
   write_unlock(&tty_output_server.lock);
-
-  ret = create_dentry_tty_output_hp_node_tty(hp_node, tty->name);
   return;
 }
 
@@ -95,6 +95,7 @@ static void hp_do_tty_write(struct tty_struct *tty, size_t size)
 int add_tty_hooks(void)
 {
   INIT_LIST_HEAD(&tty_output_server.list);
+  rwlock_init(&tty_output_server.lock);
   write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_do_tty_write = hp_do_tty_write;
   write_unlock(&honeypot_hooks.lock);
@@ -104,25 +105,11 @@ int add_tty_hooks(void)
 int remove_tty_hooks(void)
 {
   struct tty_output *tty_o;
-  int i = 0;
   struct list_head *p;
   char buf[256];
   write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_do_tty_write = NULL;
   write_unlock(&honeypot_hooks.lock);
-
-  read_lock(&tty_output_server.lock);
-  list_for_each(p, &tty_output_server.list) {
-    tty_o = list_entry(p, struct tty_output, list);
-    if (tty_o->size > sizeof(buf) - 1) {
-      tty_o->size = sizeof(buf) - 1;
-    }
-    memcpy(buf, tty_o->buf, tty_o->size);
-    buf[tty_o->size] = '\0';
-    debug("%d: %s(%ld) %ld.%ld %s\n", i++, tty_o->tty_name, tty_o->hp_node,
-          tty_o->sec, tty_o->usec, buf);
-  }
-  read_unlock(&tty_output_server.lock);
 
   write_lock(&tty_output_server.lock);
   while(!list_empty(&tty_output_server.list)) {

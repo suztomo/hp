@@ -64,7 +64,7 @@ int create_dentry_tty_output_hp_node(long int hp_node)
 }
 
 
-struct list_head node_tty_list[HP_TTY_OUTPUT_DENTRY_NUM];
+//struct list_head node_tty_list[HP_TTY_OUTPUT_DENTRY_NUM];
 
 
 /*
@@ -107,6 +107,7 @@ int create_dentry_tty_output_hp_node_tty(long int hp_node, char *tty_name)
   struct dentry *de;
   struct tty_dentry *td;
 
+
   /*
     Firstly checks the existence of the parent directory <hp_node>
    */
@@ -118,14 +119,19 @@ int create_dentry_tty_output_hp_node_tty(long int hp_node, char *tty_name)
     }
   }
   parent = hp_tty_output_dentries[hp_node];
+  if (!parent) {
+    alert("Parent is not created");
+    return -ENODEV;
+  }
   de = create_tty_entry(tty_name, mode, parent, 
                         HP_DENTRY_KEY_TTY_OUTPUT_NODE_TTY);
   /*
     Record the dentries for hp_cleanup_tty_output_sysfs().
    */
   td = hp_alloc(sizeof(struct tty_dentry));
+  td->de = de;
   write_lock(&tty_dentry_server.lock);
-  list_add_tail(&td->list, &tty_dentry_server.list);
+  list_add_tail(&(td->list), &tty_dentry_server.list);
   write_unlock(&tty_dentry_server.lock);
   return 0;
 }
@@ -166,7 +172,7 @@ int hp_tty_output_prepare_output_files(void)
       tof = hp_alloc(sizeof(struct tty_output_filename));
       tof->hp_node = tty_o->hp_node;
       strncpy(tof->tty_name, tty_o->tty_name, sizeof(tof->tty_name));
-      list_add_tail(&tof->list, &tty_output_filename_list);
+      list_add_tail(&(tof->list), &tty_output_filename_list);
     }
   }
   read_unlock(&tty_output_server.lock);
@@ -179,13 +185,14 @@ int hp_tty_output_prepare_output_files(void)
                      list);
     /* If a error occurs, the return value become the error */
     r |= create_dentry_tty_output_hp_node_tty(tof->hp_node, tof->tty_name);
-    list_del(&tof->list);
+    list_del(&(tof->list));
     kfree(tof);
   }
 
   return r;
 }
 
+#include <linux/spinlock.h>
 
 /*
   Initializes the directory "/sys/kernel/security/hp/tty_output/"
@@ -196,6 +203,7 @@ int hp_init_tty_output_sysfs(void)
   int i;
   int flag = 0;
   INIT_LIST_HEAD(&tty_dentry_server.list);
+  rwlock_init(&tty_dentry_server.lock);
   if (!hp_dir_entry) {
     alert("parent directory is not initialized.");
     return -ENODEV;
@@ -206,7 +214,7 @@ int hp_init_tty_output_sysfs(void)
     if (de) {
       flag = 1;
     }
-    INIT_LIST_HEAD(&node_tty_list[i]);
+    //    INIT_LIST_HEAD(&node_tty_list[i]);
   }
   if (flag) {
     memset(hp_tty_output_dentries, 0x0, sizeof(hp_tty_output_dentries));
@@ -230,7 +238,7 @@ int hp_cleanup_tty_output_sysfs(void)
   while(!list_empty(&tty_dentry_server.list)) {
     td = list_entry(tty_dentry_server.list.next, struct tty_dentry, list);
     debug("*** deleting %d\n", i++);
-    list_del(&td->list);
+    list_del(&(td->list));
     securityfs_remove(td->de);
   }
 

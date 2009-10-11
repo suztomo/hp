@@ -259,7 +259,7 @@ static int hp_init_interfaces(void)
   }
   hp_create_entry("node_ip",   0666, hp_root, HP_DENTRY_KEY_NODECONF_IP);
   hp_create_entry("node_port", 0666, hp_root, HP_DENTRY_KEY_NODECONF_PORT);
-  hp_create_entry("tty_output_setup", 0222, hp_root,
+  hp_create_entry("tty_output_setup", 0444, hp_root,
                   HP_DENTRY_KEY_TTY_OUTPUT_SETUP);
   hp_create_dir_entry(HP_TTY_OUTPUT_DIR_NAME, hp_root, HP_DENTRY_KEY_TTY_OUTPUT);
   return 0;
@@ -284,11 +284,10 @@ int hp_init_sysfs(void)
   if (hp_init_interfaces()) {
     debug("Failed creating interfaces");
   }
-  /*
+
   if (hp_init_tty_output_sysfs()) {
     debug("Failed creating subdirs of tty_output");
   }
-  */
 
   /* Success */
   return 0;
@@ -297,13 +296,18 @@ int hp_init_sysfs(void)
 int hp_cleanup_sysfs(void)
 {
   int i;
+  i = hp_cleanup_tty_output_sysfs();
+  if (i) {
+    alert("cleanup security/hp/tty_output/ failed.\n");
+    return -1;
+  }
   for (i=0; i<HP_DENTRY_NUM; ++i) {
     /* The root directory ('security/hp/') must be removed at last,
        that is, HP_DENTRY_KEY_ROOT must be 0.
      */
     struct dentry *de = hp_dentries[HP_DENTRY_NUM - i - 1];
     if (de) {
-      debug( "removing.\n");
+      debug( "removing %s.\n", dentry_fname(de));
       securityfs_remove(de);
     }
   }
