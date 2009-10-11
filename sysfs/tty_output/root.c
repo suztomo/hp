@@ -200,26 +200,12 @@ int hp_tty_output_prepare_output_files(void)
 int hp_init_tty_output_sysfs(void)
 {
   struct dentry *hp_dir_entry = hp_dentries[HP_DENTRY_KEY_ROOT];
-  int i;
-  int flag = 0;
   INIT_LIST_HEAD(&tty_dentry_server.list);
   rwlock_init(&tty_dentry_server.lock);
   if (!hp_dir_entry) {
     alert("parent directory is not initialized.");
     return -ENODEV;
   }
-
-  for (i=0; i<HP_TTY_OUTPUT_DENTRY_NUM; ++i) {
-    struct dentry *de = hp_tty_output_dentries[i];
-    if (de) {
-      flag = 1;
-    }
-    //    INIT_LIST_HEAD(&node_tty_list[i]);
-  }
-  if (flag) {
-    memset(hp_tty_output_dentries, 0x0, sizeof(hp_tty_output_dentries));
-  }
-
 
   return 0;
 }
@@ -249,8 +235,8 @@ int hp_cleanup_tty_output_sysfs(void)
   for (i=0; i<HP_TTY_OUTPUT_DENTRY_NUM; ++i) {
     struct dentry *de = hp_tty_output_dentries[HP_TTY_OUTPUT_DENTRY_NUM - i - 1];
     if (de) {
-      debug("removing.");
-      //      securityfs_remove(de);
+      debug("removing. %s in tty_output", dentry_fname(de));
+      securityfs_remove(de);
     }
   }
 

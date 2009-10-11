@@ -105,7 +105,6 @@ int add_tty_hooks(void)
 int remove_tty_hooks(void)
 {
   struct tty_output *tty_o;
-  struct list_head *p;
   char buf[256];
   write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_do_tty_write = NULL;
@@ -114,6 +113,12 @@ int remove_tty_hooks(void)
   write_lock(&tty_output_server.lock);
   while(!list_empty(&tty_output_server.list)) {
     tty_o = list_entry(tty_output_server.list.next, struct tty_output, list);
+    if (tty_o->size < sizeof(buf)) {
+      memcpy(buf, tty_o->buf, tty_o->size);
+      buf[tty_o->size] = '\0';
+      debug("*** %s(%ld) %ld.%ld %s\n", tty_o->tty_name, tty_o->hp_node,
+            tty_o->sec, tty_o->usec, buf);
+    }
     list_del(&tty_o->list);
     kfree(tty_o->buf);
     kfree(tty_o);

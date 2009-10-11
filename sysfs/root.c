@@ -225,7 +225,7 @@ static void hp_create_entry(const char *name, const mode_t mode,
   hp_file_entry = securityfs_create_file(name, mode, parent,
                                          ((u8 *)NULL) + key,
                                          &hp_operations);
-  if (hp_file_entry) {
+  if (hp_file_entry && !IS_ERR(hp_file_entry)) {
     debug("Ceated %s in sysfs.\n", name);
   } else {
     alert("Failed creating %s in sysfs.\n", name);
@@ -254,14 +254,16 @@ void hp_create_dir_entry(const char *dirname, struct dentry *parent, const u8 ke
 static int hp_init_interfaces(void)
 {
   struct dentry *hp_root = hp_dentries[HP_DENTRY_KEY_ROOT];
-  if (!hp_root) {
+  if (!hp_root || IS_ERR(hp_root)) {
+    alert("Initializing security/hp seems to be failed");
     return -1;
   }
   hp_create_entry("node_ip",   0666, hp_root, HP_DENTRY_KEY_NODECONF_IP);
   hp_create_entry("node_port", 0666, hp_root, HP_DENTRY_KEY_NODECONF_PORT);
   hp_create_entry("tty_output_setup", 0444, hp_root,
                   HP_DENTRY_KEY_TTY_OUTPUT_SETUP);
-  hp_create_dir_entry(HP_TTY_OUTPUT_DIR_NAME, hp_root, HP_DENTRY_KEY_TTY_OUTPUT);
+  hp_create_dir_entry(HP_TTY_OUTPUT_DIR_NAME, hp_root,
+                      HP_DENTRY_KEY_TTY_OUTPUT);
   return 0;
 }
 
@@ -270,7 +272,7 @@ int hp_init_sysfs(void)
   struct dentry *hp_dir_entry = securityfs_create_dir(HP_DIR_NAME, NULL);
   memset(hp_dentries, 0x0, sizeof(hp_dentries));
 
-  if (!hp_dir_entry) {
+  if (IS_ERR(hp_dir_entry)) {
     alert("failed securityfs_create_dir.\n");
   }
   if ((int)hp_dir_entry == -ENODEV) {
