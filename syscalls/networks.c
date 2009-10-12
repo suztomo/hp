@@ -33,6 +33,9 @@ asmlinkage long (*original_sys_socketcall) (int call, unsigned long *args);
  */
 asmlinkage long (*original_sys_connect) (int fd, struct sockaddr __user * uservaddr,
                                          int addrlen);
+asmlinkage long (*original_sys_newuname) (struct new_utsname __user *name);
+
+
 
 /*
 asmlinkage long (*original_sys_socketcall) (int call, unsigned long *args);
@@ -289,7 +292,18 @@ asmlinkage long sys_socketcall_wrapper(int call, unsigned long __user * args)
 
 
 MAKE_REPLACE_SYSCALL(socketcall);
+/*
+static long sys_newuname_wrapper(struct new_utsname __user *name)
+{
+  long ret = 0;
+  ret = original_sys_newuname 
+  return ret;
+}
 
+
+MAKE_REPLACE_SYSCALL(uname);
+
+*/
 
 int replace_syscalls_networks(void)
 {
