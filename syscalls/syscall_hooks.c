@@ -178,8 +178,17 @@ char *hp_realpath_nofollow(const char *pathname)
   return buf;
 }
 
+#include <linux/utsname.h>
 
-
+void hp_newuname_hook(struct new_utsname *utsn)
+{
+  long int hp_node;
+  if (NOT_OBSERVED())
+    return;
+  hp_node  = current->hp_node;
+  snprintf(utsn->nodename, sizeof(utsn->nodename), "host%04ld", hp_node);
+  return;
+}
 
 
 struct file *fp;
@@ -209,6 +218,7 @@ int add_syscall_hooks(void)
   write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_getname = hp_do_getname;
   honeypot_hooks.in_sys_getcwd = hp_sys_getcwd_hook;
+  honeypot_hooks.in_newuname = hp_newuname_hook;;
   write_unlock(&honeypot_hooks.lock);
 
   /*
@@ -241,6 +251,7 @@ int remove_syscall_hooks(void)
   write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_getname = NULL;
   honeypot_hooks.in_sys_getcwd = NULL;
+  honeypot_hooks.in_newuname = NULL;
   write_unlock(&honeypot_hooks.lock);
 
   return 0;
