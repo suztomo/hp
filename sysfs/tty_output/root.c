@@ -23,6 +23,19 @@ struct dentry *hp_tty_output_dentries[HP_TTY_OUTPUT_DENTRY_NUM];
   Creates a directory for tty_output as "/tty_output/<hp_node>/"
   specifying <hp_node>
  */
+#include <linux/fsnotify.h>
+
+
+void notify_dir_creation_to_parent(struct dentry *dentry)
+{
+    if (dentry->d_parent->d_inode) {
+      fsnotify_mkdir(dentry->d_parent->d_inode, dentry);
+    } else{
+      debug("inode of the parent directory is NULL");
+    }
+    return;
+}
+
 int create_dentry_tty_output_hp_node(long int hp_node)
 {
   struct dentry *parent_dir = hp_dentries[HP_DENTRY_KEY_TTY_OUTPUT];
@@ -51,13 +64,18 @@ int create_dentry_tty_output_hp_node(long int hp_node)
   hp_node_dir = securityfs_create_dir(dir_name, parent_dir);
   if (!hp_node_dir) {
     alert("failed securityfs_create_dir.\n");
-  }
-  if ((int)hp_node_dir == -ENODEV) {
+  } else if ((int)hp_node_dir == -ENODEV) {
     /*
       Parent is missing
      */
     alert("securityfs is not enabled in this machine.\n");
     hp_node_dir = NULL;
+  } else {
+    /*
+      Success, notifies the creation to parent.
+      see ~/inotify.sh
+     */
+    notify_dir_creation_to_parent();
   }
   hp_tty_output_dentries[hp_node] = hp_node_dir;
   return 0;
