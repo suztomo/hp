@@ -75,7 +75,8 @@ int create_dentry_tty_output_hp_node(long int hp_node)
       Success, notifies the creation to parent.
       see ~/inotify.sh
      */
-    notify_dir_creation_to_parent();
+    notify_dir_creation_to_parent(hp_node_dir);
+    debug("Created tty_output/%ld", hp_node);
   }
   hp_tty_output_dentries[hp_node] = hp_node_dir;
   return 0;
@@ -98,7 +99,7 @@ static const struct file_operations hp_tty_output_operations = {
 struct tty_dentry_server tty_dentry_server;
 
 
-static struct dentry * create_tty_entry(const char *name, const mode_t mode,
+struct dentry * hp_create_tty_entry(const char *name, const mode_t mode,
                                         struct dentry *parent, const u8 key)
 {
   struct dentry *new_dentry;
@@ -106,6 +107,7 @@ static struct dentry * create_tty_entry(const char *name, const mode_t mode,
                                       ((u8 *)NULL) + key,
                                       &hp_tty_output_operations);
   if (new_dentry) {
+    notify_dir_creation_to_parent(new_dentry);
     debug("Created %s in tty_output.\n", name);
   } else {
     alert("Failed creating %s in tty_output.\n", name);
@@ -141,10 +143,11 @@ int create_dentry_tty_output_hp_node_tty(long int hp_node, char *tty_name)
     alert("Parent is not created");
     return -ENODEV;
   }
-  de = create_tty_entry(tty_name, mode, parent, 
+  de = hp_create_tty_entry(tty_name, mode, parent, 
                         HP_DENTRY_KEY_TTY_OUTPUT_NODE_TTY);
   /*
-    Record the dentries for hp_cleanup_tty_output_sysfs().
+    Record in the tty_dentry_server.list
+    of the tty's dentries for hp_cleanup_tty_output_sysfs().
    */
   td = hp_alloc(sizeof(struct tty_dentry));
   td->de = de;
@@ -160,7 +163,7 @@ struct tty_output_filename {
   char tty_name[TTY_NAME_LEN];
 };
 
-
+#define STRCMP_SAME 0
 /*
   Creates files named "/hp/tty_output/<hp_node>/<tty_name>".
   Currently I use "list" for checking the existence of the file
@@ -181,7 +184,7 @@ int hp_tty_output_prepare_output_files(void)
     already = 0;
     list_for_each_entry(tof, &tty_output_filename_list, list) {
       if (tof->hp_node == tty_o->hp_node &&
-          strcmp(tof->tty_name, tty_o->tty_name) == 0) {
+          strcmp(tof->tty_name, tty_o->tty_name) == STRCMP_SAME) {
         already = 1;
         break;
       }
@@ -196,13 +199,13 @@ int hp_tty_output_prepare_output_files(void)
   read_unlock(&tty_output_server.lock);
 
   /*
-    Creates and frees the list elements
+    Creates the directories and files and frees the list elements
    */
   while(!list_empty(&tty_output_filename_list)) {
     tof = list_entry(tty_output_filename_list.next, struct tty_output_filename,
                      list);
     /* If a error occurs, the return value become the error */
-    r |= create_dentry_tty_output_hp_node_tty(tof->hp_node, tof->tty_name);
+    r = create_dentry_tty_output_hp_node_tty(tof->hp_node, tof->tty_name);
     list_del(&(tof->list));
     kfree(tof);
   }
@@ -214,17 +217,27 @@ int hp_tty_output_prepare_output_files(void)
 
 /*
   Initializes the directory "/sys/kernel/security/hp/tty_output/"
+  The directory itself (hp/tty_output) is created in sysfs/root.c
  */
 int hp_init_tty_output_sysfs(void)
 {
   struct dentry *hp_dir_entry = hp_dentries[HP_DENTRY_KEY_ROOT];
+  struct dentry *hp_tty_output_entry = hp_dentries[HP_DENTRY_KEY_TTY_OUTPUT];
   INIT_LIST_HEAD(&tty_dentry_server.list);
   rwlock_init(&tty_dentry_server.lock);
   if (!hp_dir_entry) {
     alert("parent directory is not initialized.");
     return -ENODEV;
   }
+  if (!hp_tty_output_entry) {
+    alert("tty_output directory is not initialized.");
+    return -ENODEV;
+  }
 
+  /*
+    Creates /hp/tty_output/all
+   */
+  hp_tty_output_create_tty_output_all(hp_tty_output_entry);
   return 0;
 }
 
@@ -257,8 +270,5 @@ int hp_cleanup_tty_output_sysfs(void)
       securityfs_remove(de);
     }
   }
-
-
-
   return 0;
 }

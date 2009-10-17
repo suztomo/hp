@@ -29,5 +29,9 @@ struct tty_output_server {
   rwlock_t lock;
 };
 
+static inline void delete_tty_output(struct tty_output *tty_o) {
+  kfree(tty_o->buf);
+  kfree(tty_o);
+}
 
 extern struct tty_output_server tty_output_server;

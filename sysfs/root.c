@@ -55,6 +55,10 @@ static int hp_open_control(int type, struct file *file)
   buf->write_cur = 0;
   buf->read_cur = 0;
   mutex_init(&buf->io_sem);
+  /*
+    The private data field is used in hp_read_control
+    to handle several special devices in an interface.
+   */
   file->private_data = buf;
   switch(type) {
   case HP_DENTRY_KEY_NODECONF_IP:
@@ -83,6 +87,11 @@ static int hp_open_control(int type, struct file *file)
     buf->write = NULL;
     hp_tty_output_setup_readbuf(buf, dname_i, fname);
     break;
+  case HP_DENTRY_KEY_TTY_OUTPUT_ALL:
+    buf->write = NULL;
+    hp_tty_output_all_setup_readbuf(buf);
+    break;
+
   case HP_DENTRY_KEY_TTY_OUTPUT_SETUP:
     /*
       security/hp/
@@ -260,8 +269,11 @@ static int hp_init_interfaces(void)
   }
   hp_create_entry("node_ip",   0666, hp_root, HP_DENTRY_KEY_NODECONF_IP);
   hp_create_entry("node_port", 0666, hp_root, HP_DENTRY_KEY_NODECONF_PORT);
+  /*
+    tty output is transmitted via hp/tty_output/all
   hp_create_entry("tty_output_setup", 0444, hp_root,
                   HP_DENTRY_KEY_TTY_OUTPUT_SETUP);
+  */
   hp_create_dir_entry(HP_TTY_OUTPUT_DIR_NAME, hp_root,
                       HP_DENTRY_KEY_TTY_OUTPUT);
   return 0;

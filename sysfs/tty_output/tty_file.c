@@ -1,5 +1,5 @@
 /*
-  Interfaces to change configuration of nodes.
+  Interfaces to pass a tty's output
  */
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -18,14 +18,14 @@ struct output_buf {
   struct tty_output *tty_output;
 };
 
-inline size_t buffer_size_from_output(struct output_buf *opb)
+static inline size_t buffer_size_from_output(struct output_buf *opb)
 {
   return sizeof(opb->tty_output->sec) + sizeof(opb->tty_output->usec) +
     sizeof(size_t) + opb->tty_output->size;
 }
 #include <linux/kernel.h>
 
-size_t manipulate_buffer_from_output(char *buf, struct output_buf *opb)
+static size_t manipulate_buffer_from_output(char *buf, struct output_buf *opb)
 {
   long int *buf_ip = (long int*)buf;
   size_t *buf_sp = (size_t *)(buf + 2 * sizeof(long int));
