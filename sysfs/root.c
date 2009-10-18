@@ -157,12 +157,12 @@ ssize_t hp_read(struct file *file, char __user *buf,
 static int hp_release_control(struct inode *inode, struct file *file)
 {
   struct hp_io_buffer *buf = file->private_data;
+  if (buf->release) {
+    buf->release(buf);
+  }
   if (buf->read_buf) {
     hp_free(buf->read_buf);
     buf->read_buf = NULL;
-  }
-  if (buf->release) {
-    buf->release(buf);
   }
   hp_free(buf);
 
