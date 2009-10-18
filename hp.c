@@ -15,6 +15,7 @@
 #include <linux/unistd.h>	/* The list of system calls */
 #include <linux/proc_fs.h>
 #include <linux/mm.h> /* VM_READ etc */
+#include <linux/mutex.h>
 
 /* 
  * For the current (process) structure, we need

@@ -44,6 +44,8 @@ extern struct dentry *hp_dentries[HP_DENTRY_NUM];
 struct hp_io_buffer {
   int (*read)(struct hp_io_buffer*);
   int (*write)(struct hp_io_buffer*);
+  void (*release)(struct hp_io_buffer*);
+
   /* Exclusive lock for this structure */
   struct mutex io_sem;
 
@@ -110,12 +112,16 @@ int hp_create_dentry_tty_output_hp_node_tty(long int hp_node, char *tty_name);
 
 
 int hp_tty_output_create_tty_output_all(struct dentry *parent);
+void hp_tty_output_all_close(struct hp_io_buffer *io_buf);
 
 
 inline const unsigned char *file_fname(struct file *file);
 inline const unsigned char *file_parent_dname(struct file *file);
 inline const unsigned char *dentry_fname(struct dentry *de);
 inline const unsigned char *dentry_parent_dname(struct dentry *de);
+
+
+
 
 #define HP_SYSFS
 #endif

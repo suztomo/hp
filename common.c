@@ -3,6 +3,9 @@
 
 #include "common.h"
 
+/*
+  Allocates specified-sized region.
+ */
 void *hp_alloc(const size_t size)
 {
   void *p = kzalloc(size, GFP_KERNEL);
@@ -12,6 +15,9 @@ void *hp_alloc(const size_t size)
   return p;
 }
 
+/*
+  Frees the region.
+*/
 void hp_free(const void *p)
 {
   kfree(p);

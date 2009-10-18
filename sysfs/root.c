@@ -47,6 +47,9 @@ inline const unsigned char *dentry_parent_dname(struct dentry *de)
 
 static int hp_open_control(int type, struct file *file)
 {
+  /*
+    hp_alloc assures that the region is filled with zero.
+   */
   struct hp_io_buffer *buf = hp_alloc(sizeof(struct hp_io_buffer));
   const char *fname;
   const char *dname;
@@ -90,6 +93,7 @@ static int hp_open_control(int type, struct file *file)
   case HP_DENTRY_KEY_TTY_OUTPUT_ALL:
     buf->write = NULL;
     hp_tty_output_all_setup_readbuf(buf);
+    buf->release = hp_tty_output_all_close;
     break;
 
   case HP_DENTRY_KEY_TTY_OUTPUT_SETUP:
@@ -135,8 +139,10 @@ static ssize_t hp_read_control(struct file *file, char __user *buf,
   }
   if (copy_to_user(buf, io_buf->read_buf + io_buf->read_cur, to_write)) {
     return -EINVAL;
+  } else {
+    io_buf->read_cur += to_write;
   }
-  io_buf->read_cur += to_write;
+
 
   mutex_unlock(&io_buf->io_sem);
   return to_write;
@@ -154,6 +160,9 @@ static int hp_release_control(struct inode *inode, struct file *file)
   if (buf->read_buf) {
     hp_free(buf->read_buf);
     buf->read_buf = NULL;
+  }
+  if (buf->release) {
+    buf->release(buf);
   }
   hp_free(buf);
 
