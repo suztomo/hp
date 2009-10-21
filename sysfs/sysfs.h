@@ -42,7 +42,8 @@ extern struct dentry *hp_dentries[HP_DENTRY_NUM];
   Structure for honeypot interfaces between kernel and user space.
  */
 struct hp_io_buffer {
-  int (*read)(struct hp_io_buffer*);
+  ssize_t (*read)(struct hp_io_buffer*, struct file *file, char __user *buf,
+              size_t count, loff_t *ppos);
   int (*write)(struct hp_io_buffer*);
   void (*release)(struct hp_io_buffer*);
 
@@ -104,6 +105,10 @@ void hp_tty_output_setup_readbuf(struct hp_io_buffer *io_buf,
                                  long int hp_node,
                                  const char *file_fname);
 void hp_tty_output_all_setup_readbuf(struct hp_io_buffer *io_buf);
+ssize_t hp_tty_output_all_read(struct hp_io_buffer *io_buf,
+                               struct file *file, char __user *ubuf,
+                               size_t count, loff_t *ppos);
+
 
 int hp_tty_output_prepare_output_files(void);
 struct dentry * hp_create_tty_entry(const char *name, const mode_t mode,

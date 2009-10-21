@@ -92,7 +92,8 @@ static int hp_open_control(int type, struct file *file)
     break;
   case HP_DENTRY_KEY_TTY_OUTPUT_ALL:
     buf->write = NULL;
-    hp_tty_output_all_setup_readbuf(buf);
+    //    hp_tty_output_all_setup_readbuf(buf);
+    buf->read = hp_tty_output_all_read;
     buf->release = hp_tty_output_all_close;
     break;
 
@@ -127,22 +128,28 @@ static ssize_t hp_read_control(struct file *file, char __user *buf,
 {
   struct hp_io_buffer * io_buf = file->private_data;
   ssize_t to_write = count;
-  if (mutex_lock_interruptible(&io_buf->io_sem)) {
-    return -EINTR;
-  }
-
-  if (io_buf->read_cur >= io_buf->readbuf_size) {
-    return 0;
-  }
-  if (to_write > io_buf->readbuf_size - io_buf->read_cur) {
-    to_write = io_buf->readbuf_size - io_buf->read_cur;
-  }
-  if (copy_to_user(buf, io_buf->read_buf + io_buf->read_cur, to_write)) {
-    return -EINVAL;
+  if (io_buf->read) {
+    /*
+      If the file has special read function.
+     */
+    to_write = io_buf->read(io_buf, file, buf, count, ppos);
   } else {
-    io_buf->read_cur += to_write;
-  }
+    if (mutex_lock_interruptible(&io_buf->io_sem)) {
+      return -EINTR;
+    }
 
+    if (io_buf->read_cur >= io_buf->readbuf_size) {
+      return 0;
+    }
+    if (to_write > io_buf->readbuf_size - io_buf->read_cur) {
+      to_write = io_buf->readbuf_size - io_buf->read_cur;
+    }
+    if (copy_to_user(buf, io_buf->read_buf + io_buf->read_cur, to_write)) {
+      return -EINVAL;
+    } else {
+      io_buf->read_cur += to_write;
+    }
+  }
 
   mutex_unlock(&io_buf->io_sem);
   return to_write;
