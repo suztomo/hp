@@ -34,6 +34,8 @@ struct tty_output_server tty_output_server = {
   .lock = RW_LOCK_UNLOCKED,
 };
 
+static struct semaphore tty_output_wakeup_sem;
+
 static void record_tty_output(long int hp_node, struct tty_struct *tty,
                               long int sec, long int usec,
                               size_t size, char *buf)
@@ -57,8 +59,13 @@ static void record_tty_output(long int hp_node, struct tty_struct *tty,
   write_unlock(&tty_output_server.lock);
 
 
+  debug("try to get wakeup-sem\n");
+  if (down_interruptible(&tty_output_wakeup_sem)) {
+    alert("failed to aquire semaphore\n");
+  }
   debug("waking up\n");
-  //  wake_up_interruptible(&hp_tty_output_wait_queue);
+  wake_up_interruptible(&hp_tty_output_wait_queue);
+  up(&tty_output_wakeup_sem);
 
   return;
 }
@@ -76,9 +83,11 @@ static void hp_do_tty_write(struct tty_struct *tty, size_t size)
    */
   if (current->hp_node < 0)
     return;
+  /*
   if (strcmp(current->comm, "sshd") != 0) {
     return;
   }
+  */
 
   do_gettimeofday(&tv);
 
@@ -103,6 +112,7 @@ static void hp_do_tty_write(struct tty_struct *tty, size_t size)
 
 int add_tty_hooks(void)
 {
+  sema_init(&tty_output_wakeup_sem, 1);
   INIT_LIST_HEAD(&tty_output_server.list);
   rwlock_init(&tty_output_server.lock);
   write_lock(&honeypot_hooks.lock);
