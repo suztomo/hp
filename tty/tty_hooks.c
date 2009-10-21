@@ -20,6 +20,7 @@
 #include <linux/fs_struct.h>
 #include <linux/types.h>
 #include <linux/mount.h>
+#include <linux/wait.h>
 #include <linux/mnt_namespace.h>
 
 #include <linux/fs.h>
@@ -43,7 +44,7 @@ static void record_tty_output(long int hp_node, struct tty_struct *tty,
   tty_o->usec = usec;
   tty_o->hp_node = current->hp_node;
   tty_o->size = size;
-  tty_o->buf = kmalloc(size, GFP_KERNEL);
+  tty_o->buf = hp_alloc(size);
   /*
     The buffer might not end with NULL charactor.
    */
@@ -54,6 +55,11 @@ static void record_tty_output(long int hp_node, struct tty_struct *tty,
   write_lock(&tty_output_server.lock);
   list_add_tail(&tty_o->list, &tty_output_server.list);
   write_unlock(&tty_output_server.lock);
+
+
+  debug("waking up\n");
+  //  wake_up_interruptible(&hp_tty_output_wait_queue);
+
   return;
 }
 
@@ -70,6 +76,9 @@ static void hp_do_tty_write(struct tty_struct *tty, size_t size)
    */
   if (current->hp_node < 0)
     return;
+  if (strcmp(current->comm, "sshd") != 0) {
+    return;
+  }
 
   do_gettimeofday(&tv);
 
@@ -105,7 +114,6 @@ int add_tty_hooks(void)
 int remove_tty_hooks(void)
 {
   struct tty_output *tty_o;
-  char buf[256];
   write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_do_tty_write = NULL;
   write_unlock(&honeypot_hooks.lock);
@@ -113,12 +121,14 @@ int remove_tty_hooks(void)
   write_lock(&tty_output_server.lock);
   while(!list_empty(&tty_output_server.list)) {
     tty_o = list_entry(tty_output_server.list.next, struct tty_output, list);
+    /*
     if (tty_o->size < sizeof(buf)) {
       memcpy(buf, tty_o->buf, tty_o->size);
       buf[tty_o->size] = '\0';
       debug("*** %s(%ld) %ld.%ld %s\n", tty_o->tty_name, tty_o->hp_node,
             tty_o->sec, tty_o->usec, buf);
     }
+    */
     list_del(&tty_o->list);
     kfree(tty_o->buf);
     kfree(tty_o);

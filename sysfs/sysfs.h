@@ -83,6 +83,8 @@ extern struct tty_dentry_server tty_dentry_server;
 
 extern struct dentry * hp_dir_entry;
 
+extern wait_queue_head_t hp_tty_output_wait_queue;
+
 /*
   General interfaces for special files.
  */
