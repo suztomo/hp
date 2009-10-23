@@ -4,3 +4,9 @@ Requirement
 
 Run:
   twistd -n -b -y tty_server.py
+
+Twisted TCP Server Sample: 
+  http://twistedmatrix.com/projects/core/documentation/howto/servers.html
+twisted.internet.tcp.Server:
+  http://twistedmatrix.com/documents/current/api/twisted.internet.tcp.Server.html
+
