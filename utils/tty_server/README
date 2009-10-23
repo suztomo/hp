@@ -1,0 +1,6 @@
+Requirement
+  python
+  python-twisted
+
+Run:
+  twistd -n -b -y tty_server.py
