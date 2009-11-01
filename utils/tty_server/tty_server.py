@@ -22,16 +22,20 @@ class TTYServer(Protocol):
     def connectionMade(self):
         print("Got new client!")
         try:
-            f = open(TTYLOGFILE, 'rb')
+            self.f = open(TTYLOGFILE, 'rb')
         except IOError:
             print("No such file: %s" % TTYLOGFILE)
             return
         while True:
-            buf = f.read(64)
-            self.sendBuffer(buf)
+            try:
+                buf = self.f.read(64)
+                self.sendBuffer(buf)
+            except IOError:
+                break
 
     def connectionLost(self, reason):
         print("Connection lost")
+        self.f.close()
 
     def dataReceived(self, line):
         l = repr(line)
@@ -42,7 +46,7 @@ class TTYServer(Protocol):
         self.transport.doWrite()
         self.printBufferHex(buf)
 
-    def printBufferHex(self, buf)
+    def printBufferHex(self, buf):
         s = ""
         for c in buf:
             s += "%2x|" % ord(c)
