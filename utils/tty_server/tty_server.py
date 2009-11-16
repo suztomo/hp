@@ -26,25 +26,28 @@ class TTYServer(Protocol):
         except IOError:
             print("No such file: %s" % TTYLOGFILE)
             return
-        while True:
-            try:
-                buf = self.f.read(64)
-                self.sendBuffer(buf)
-            except IOError:
-                break
+        return
 
+    # Never be called
     def connectionLost(self, reason):
         print("Connection lost")
         self.f.close()
 
     def dataReceived(self, line):
+        for i in range(10):
+            try:
+                buf = self.f.read(64)
+                self.sendBuffer(buf)
+            except IOError:
+                print("IOError when connectionMade");
+                break
         l = repr(line)
         print(l)
 
     def sendBuffer(self, buf):
         self.transport.write(buf)
         self.transport.doWrite()
-        self.printBufferHex(buf)
+#        self.printBufferHex(buf)
 
     def printBufferHex(self, buf):
         s = ""

@@ -59,7 +59,7 @@ static void record_tty_output(long int hp_node, struct tty_struct *tty,
   write_unlock(&tty_output_server.lock);
 
 
-  debug("try to get wakeup-sem\n");
+  //  debug("try to get wakeup-sem\n");
   if (down_interruptible(&tty_output_wakeup_sem)) {
     alert("failed to aquire semaphore\n");
   }

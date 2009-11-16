@@ -171,8 +171,8 @@ static int hp_release_control(struct inode *inode, struct file *file)
     buf->read_buf = NULL;
   }
   hp_free(buf);
-
   file->private_data = NULL;
+  debug("releasing");
 
   return 0;
 }
