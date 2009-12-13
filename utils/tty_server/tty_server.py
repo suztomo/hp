@@ -34,7 +34,7 @@ class TTYServer(Protocol):
         self.f.close()
 
     def dataReceived(self, line):
-        for i in range(10):
+        for i in xrange(1):
             try:
                 buf = self.f.read(64)
                 self.sendBuffer(buf)
@@ -42,7 +42,7 @@ class TTYServer(Protocol):
                 print("IOError when connectionMade");
                 break
         l = repr(line)
-        print(l)
+#        print(l)
 
     def sendBuffer(self, buf):
         self.transport.write(buf)
