@@ -4,7 +4,8 @@ honeypot-objs := syscalls/networks.o syscalls/syscall_hooks.o \
 	tty/tty_hooks.o \
 	proc/procfs_hack.o \
 	sysfs/nodeconf.o sysfs/root.o sysfs/tty_output/root.o \
-	sysfs/tty_output/tty_file.o sysfs/tty_output/all.o \
+	sysfs/hp_message.o \
+	sysfs/tty_output/all.o \
 	common.o hp.o
 
 

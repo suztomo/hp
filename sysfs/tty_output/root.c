@@ -164,6 +164,7 @@ struct tty_output_filename {
 };
 
 #define STRCMP_SAME 0
+
 /*
   Creates files named "/hp/tty_output/<hp_node>/<tty_name>".
   Currently I use "list" for checking the existence of the file
@@ -174,29 +175,29 @@ int hp_tty_output_prepare_output_files(void)
 {
   struct list_head tty_output_filename_list;
   struct tty_output_filename *tof;
-  struct tty_output *tty_o;
+  struct hp_message *msg;
   int already;
   int r = 0;
   INIT_LIST_HEAD(&tty_output_filename_list);
 
-  read_lock(&tty_output_server.lock);
-  list_for_each_entry(tty_o, &tty_output_server.list, list) {
+  read_lock(&message_server.lock);
+  list_for_each_entry(msg, &message_server.list, list) {
     already = 0;
     list_for_each_entry(tof, &tty_output_filename_list, list) {
-      if (tof->hp_node == tty_o->hp_node &&
-          strcmp(tof->tty_name, tty_o->tty_name) == STRCMP_SAME) {
+      if (tof->hp_node == msg->c.tty_output.hp_node &&
+          strcmp(tof->tty_name, msg->c.tty_output.tty_name) == STRCMP_SAME) {
         already = 1;
         break;
       }
     }
     if (!already) {
       tof = hp_alloc(sizeof(struct tty_output_filename));
-      tof->hp_node = tty_o->hp_node;
-      strncpy(tof->tty_name, tty_o->tty_name, sizeof(tof->tty_name));
+      tof->hp_node = msg->c.tty_output.hp_node;
+      strncpy(tof->tty_name, msg->c.tty_output.tty_name, sizeof(tof->tty_name));
       list_add_tail(&(tof->list), &tty_output_filename_list);
     }
   }
-  read_unlock(&tty_output_server.lock);
+  read_unlock(&message_server.lock);
 
   /*
     Creates the directories and files and frees the list elements

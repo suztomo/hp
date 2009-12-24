@@ -27,46 +27,40 @@
 #include <linux/honeypot.h>
 
 #include "tty_hooks.h"
+#include "../sysfs/hp_message.h"
 #include "../sysfs/sysfs.h"
 
-struct tty_output_server tty_output_server = {
-  .list = LIST_HEAD_INIT(tty_output_server.list),
+struct hp_message_server message_server = {
+  .list = LIST_HEAD_INIT(message_server.list),
   .lock = RW_LOCK_UNLOCKED,
 };
 
-static struct semaphore tty_output_wakeup_sem;
+
 
 static void record_tty_output(long int hp_node, struct tty_struct *tty,
                               long int sec, long int usec,
                               size_t size, char *buf)
 {
-  struct tty_output *tty_o;
-  tty_o = kmalloc(sizeof(struct tty_output), GFP_KERNEL);
-  tty_o->sec = sec;
-  tty_o->usec = usec;
-  tty_o->hp_node = current->hp_node;
-  tty_o->size = size;
-  tty_o->buf = hp_alloc(size);
+  struct hp_message *msg = hp_alloc(sizeof(struct hp_message));
+  msg->kind = HP_MESSAGE_TTY_OUTPUT;
+  msg->c.tty_output.sec = sec;
+  msg->c.tty_output.usec = usec;
+  msg->c.tty_output.hp_node = current->hp_node;
+  msg->c.tty_output.size = size;
+  msg->c.tty_output.buf = hp_alloc(size);
+
   /*
     The buffer might not end with NULL charactor.
    */
-  memcpy(tty_o->buf, buf, size);
-  memcpy(tty_o->tty_name, tty->name, sizeof(tty_o->tty_name));
-  // Ends with NULL charactor
-  tty_o->tty_name[sizeof(tty_o->tty_name) - 1] = '\0';
-  write_lock(&tty_output_server.lock);
-  list_add_tail(&tty_o->list, &tty_output_server.list);
-  write_unlock(&tty_output_server.lock);
+  memcpy(msg->c.tty_output.buf, buf, size);
+  memcpy(msg->c.tty_output.tty_name, tty->name, TTY_NAME_LEN);
 
+  /* Ends with NULL charactor
+     Actually tty_name[TTY_NAME_LEN + 1] in hp_message.h
+  */
+  msg->c.tty_output.tty_name[TTY_NAME_LEN] = '\0';
 
-  //  debug("try to get wakeup-sem\n");
-  if (down_interruptible(&tty_output_wakeup_sem)) {
-    alert("failed to aquire semaphore\n");
-  }
-  //  debug("waking up\n");
-  wake_up_interruptible(&hp_tty_output_wait_queue);
-  up(&tty_output_wakeup_sem);
-
+  message_server_record(msg);
   return;
 }
 
@@ -110,11 +104,9 @@ static void hp_do_tty_write(struct tty_struct *tty, size_t size)
   record_tty_output(current->hp_node, tty, cur_sec, cur_usec, size, tty->write_buf);
 }
 
+
 int add_tty_hooks(void)
 {
-  sema_init(&tty_output_wakeup_sem, 1);
-  INIT_LIST_HEAD(&tty_output_server.list);
-  rwlock_init(&tty_output_server.lock);
   write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_do_tty_write = hp_do_tty_write;
   write_unlock(&honeypot_hooks.lock);
@@ -123,26 +115,17 @@ int add_tty_hooks(void)
 
 int remove_tty_hooks(void)
 {
-  struct tty_output *tty_o;
+  struct hp_message *msg;
   write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_do_tty_write = NULL;
   write_unlock(&honeypot_hooks.lock);
 
-  write_lock(&tty_output_server.lock);
-  while(!list_empty(&tty_output_server.list)) {
-    tty_o = list_entry(tty_output_server.list.next, struct tty_output, list);
-    /*
-    if (tty_o->size < sizeof(buf)) {
-      memcpy(buf, tty_o->buf, tty_o->size);
-      buf[tty_o->size] = '\0';
-      debug("*** %s(%ld) %ld.%ld %s\n", tty_o->tty_name, tty_o->hp_node,
-            tty_o->sec, tty_o->usec, buf);
-    }
-    */
-    list_del(&tty_o->list);
-    kfree(tty_o->buf);
-    kfree(tty_o);
+  write_lock(&message_server.lock);
+  while(!list_empty(&message_server.list)) {
+    msg = list_entry(message_server.list.next, struct hp_message, list);
+    delete_hp_message(msg);
+    list_del(&msg->list);
   }
-  write_unlock(&tty_output_server.lock);
+  write_unlock(&message_server.lock);
   return 0;
 }

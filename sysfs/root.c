@@ -51,9 +51,6 @@ static int hp_open_control(int type, struct file *file)
     hp_alloc assures that the region is filled with zero.
    */
   struct hp_io_buffer *buf = hp_alloc(sizeof(struct hp_io_buffer));
-  const char *fname;
-  const char *dname;
-  int dname_i;
   buf->writebuf_size = sizeof(buf->write_buf);
   buf->write_cur = 0;
   buf->read_cur = 0;
@@ -78,18 +75,7 @@ static int hp_open_control(int type, struct file *file)
     buf->write = hp_nodeconf_port_write;
     hp_nodeconf_port_setup_readbuf(buf);
     break;
-  case HP_DENTRY_KEY_TTY_OUTPUT_NODE_TTY:
-    /*
-      security/hp/tty_output/73/pty5
-     */
-    /* tty_name, e.g., "pty5" */
-    fname = file_fname(file);
-    /* hp_node, e.g., "73" */
-    dname = file_parent_dname(file);
-    dname_i = simple_strtol(dname, NULL, 10);
-    buf->write = NULL;
-    hp_tty_output_setup_readbuf(buf, dname_i, fname);
-    break;
+
   case HP_DENTRY_KEY_TTY_OUTPUT_ALL:
     buf->write = NULL;
     //    hp_tty_output_all_setup_readbuf(buf);

@@ -1,3 +1,14 @@
+    /* No use. All information is send to tty_output/all
+  case HP_DENTRY_KEY_TTY_OUTPUT_NODE_TTY:
+  // security/hp/tty_output/73/pty5
+    // tty_name, e.g., "pty5" 
+    fname = file_fname(file);
+    // hp_node, e.g., "73" 
+    dname = file_parent_dname(file);
+    dname_i = simple_strtol(dname, NULL, 10);
+    buf->write = NULL;
+    hp_tty_output_setup_readbuf(buf, dname_i, fname);
+    break;*/
 /*
   Interfaces to pass a tty's output
  */
@@ -15,7 +26,7 @@
 
 struct output_buf {
   struct list_head list;
-  struct tty_output *tty_output;
+  struct hp_message *message;
 };
 
 static inline size_t buffer_size_from_output(struct output_buf *opb)
@@ -44,7 +55,7 @@ static size_t manipulate_buffer_from_output(char *buf, struct output_buf *opb)
 
 /*
   Setups a buffer for a read system call to "/tty_output/<hp_node>/<tty_name>".
-  This function is invoked when open system call is invoked agait the files.
+  This function is invoked when open system call is invoked against the files.
  */
 void hp_tty_output_setup_readbuf(struct hp_io_buffer *io_buf,
                                  long int hp_node,
@@ -59,8 +70,8 @@ void hp_tty_output_setup_readbuf(struct hp_io_buffer *io_buf,
   size_t s;
   INIT_LIST_HEAD(&output_buf_list);
   debug("Setting up %ld/%s.\n", hp_node, file_fname);
-  read_lock(&tty_output_server.lock);
-  list_for_each_entry(tty_o, &tty_output_server.list, list) {
+  read_lock(&message_server.lock);
+  list_for_each_entry(tty_o, &message_server.list, list) {
     if (hp_node == tty_o->hp_node &&
         strcmp(tty_o->tty_name, file_fname) == 0) {
       opb = hp_alloc(sizeof(struct output_buf));
@@ -85,7 +96,7 @@ void hp_tty_output_setup_readbuf(struct hp_io_buffer *io_buf,
     list_del(&opb->list);
     kfree(opb);
   }
-  read_unlock(&tty_output_server.lock);
+  read_unlock(&message_server.lock);
 
   /*
     the buffer will be freed in release_control
@@ -96,3 +107,6 @@ void hp_tty_output_setup_readbuf(struct hp_io_buffer *io_buf,
   io_buf->readbuf_size = wrote_count;
   return;
 }
+
+
+

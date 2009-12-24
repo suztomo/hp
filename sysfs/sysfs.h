@@ -83,7 +83,7 @@ extern struct tty_dentry_server tty_dentry_server;
 
 extern struct dentry * hp_dir_entry;
 
-extern wait_queue_head_t hp_tty_output_wait_queue;
+extern wait_queue_head_t hp_message_wait_queue;
 
 /*
   General interfaces for special files.
@@ -103,9 +103,9 @@ int hp_nodeconf_ip_write(struct hp_io_buffer *buf);
 void hp_nodeconf_ip_setup_readbuf(struct hp_io_buffer *io_buf);
 int hp_nodeconf_port_write(struct hp_io_buffer *buf);
 void hp_nodeconf_port_setup_readbuf(struct hp_io_buffer *io_buf);
-void hp_tty_output_setup_readbuf(struct hp_io_buffer *io_buf,
+/*void hp_tty_output_setup_readbuf(struct hp_io_buffer *io_buf,
                                  long int hp_node,
-                                 const char *file_fname);
+                                 const char *file_fname);*/
 void hp_tty_output_all_setup_readbuf(struct hp_io_buffer *io_buf);
 ssize_t hp_tty_output_all_read(struct hp_io_buffer *io_buf,
                                struct file *file, char __user *ubuf,
