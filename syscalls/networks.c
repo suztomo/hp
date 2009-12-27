@@ -15,14 +15,15 @@
 
 #include "syscalls.h"
 #include "../common.h"
+#include "../sysfs/hp_message.h"
 
 /* Argument list sizes for sys_socketcall */
 #define AL(x) ((x) * sizeof(unsigned long))
 static const unsigned char nargs[19]={
-	AL(0),AL(3),AL(3),AL(3),AL(2),AL(3),
-	AL(3),AL(3),AL(4),AL(4),AL(4),AL(6),
-	AL(6),AL(2),AL(5),AL(5),AL(3),AL(3),
-	AL(4)
+  AL(0),AL(3),AL(3),AL(3),AL(2),AL(3),
+  AL(3),AL(3),AL(4),AL(4),AL(4),AL(6),
+  AL(6),AL(2),AL(5),AL(5),AL(3),AL(3),
+  AL(4)
 };
 #undef AL
 
@@ -89,7 +90,7 @@ static int manage_afinet_connect(struct sockaddr __user * uservaddr, int addrlen
 
   get_ip_port_from_sockaddr(ip_addr, &vport, copied_vaddr);
 
-  debug("*** port %d.\n", vport);
+  //  debug("*** port %d.\n", vport);
   /*
     if port is 53, we do nothing.
    */
@@ -165,6 +166,9 @@ static int manage_afinet_bind(struct sockaddr __user * uservaddr, int addrlen,
 }
 
 
+/*
+  Asserted that the process is not observed.
+ */
 static long sys_bind_wrapper(int call,  unsigned long __user * args,
                                 int fd, struct sockaddr __user * uservaddr,
                                 int addrlen)
@@ -174,10 +178,6 @@ static long sys_bind_wrapper(int call,  unsigned long __user * args,
   struct sockaddr *saved_vaddr;
   char ip_port;
   char ip_addr[4];
-
-  /* Do nothing against non-observed node */
-  if (current->hp_node < 0)
-    return sys_bind(fd, uservaddr, addrlen);
 
   copied_vaddr = kmalloc(addrlen, GFP_KERNEL);
   saved_vaddr = kmalloc(addrlen, GFP_KERNEL);
@@ -211,6 +211,10 @@ static long sys_bind_wrapper(int call,  unsigned long __user * args,
   return ret;
 }
 
+/*
+  Asserted that the process is not observed.
+ */
+
 
 static long sys_connect_wrapper(int call,  unsigned long __user * args,
                                 int fd, struct sockaddr __user * uservaddr,
@@ -221,10 +225,6 @@ static long sys_connect_wrapper(int call,  unsigned long __user * args,
   struct sockaddr *saved_vaddr;
   char ip_port;
   char ip_addr[4];
-
-  /* Do nothing against non-observed node */
-  if (current->hp_node < 0)
-    return sys_connect(fd, uservaddr, addrlen);
 
   copied_vaddr = kmalloc(addrlen, GFP_KERNEL);
   saved_vaddr = kmalloc(addrlen, GFP_KERNEL);
@@ -258,11 +258,82 @@ static long sys_connect_wrapper(int call,  unsigned long __user * args,
   return ret;
 }
 
+static void record_call_name(int call)
+{
+  char *call_func_name = "none";
+  struct hp_message *msg;
+  switch(call) {
+  case SYS_SOCKET:
+    call_func_name = "sys_socket";
+    break;
+  case SYS_BIND:
+    call_func_name = "sys_bind";
+    break;
+  case SYS_CONNECT:
+    call_func_name = "sys_connect";
+    break;
+  case SYS_LISTEN:
+    call_func_name = "sys_listen";
+    break;
+  case SYS_ACCEPT:
+    call_func_name = "sys_accept";
+    break;
+  case SYS_GETSOCKNAME:
+    call_func_name = "sys_getsockname";
+    break;
+  case SYS_SOCKETPAIR:
+    call_func_name = "sys_socketpair";
+    break;
+  case SYS_SEND:
+    call_func_name = "sys_send";
+    break;
+  case SYS_SENDTO:
+    call_func_name = "sys_sendto";
+    break;
+  case SYS_RECV:
+    call_func_name = "sys_recv";
+    break;
+  case SYS_RECVFROM:
+    call_func_name = "sys_recvfrom";
+    break;
+  case SYS_SHUTDOWN:
+    call_func_name = "sys_shutdown";
+    break;
+  case SYS_GETSOCKOPT:
+    call_func_name = "sys_getsockopt";
+    break;
+  case SYS_SENDMSG:
+    call_func_name = "sys_sendmsg";
+    break;
+  case SYS_RECVMSG:
+    call_func_name = "sys_recvmsg";
+    break;
+  case SYS_ACCEPT4:
+    call_func_name = "sys_accept4";
+    break;
+  default:
+    call_func_name = "error?";
+    break;
+  }
+
+  msg = hp_message_syscall(call_func_name);
+  message_server_record(msg);
+  printk(KERN_INFO "*** socketcall[%d:%s] by %s\n",
+         call, call_func_name, current->comm);
+}
+
+
 asmlinkage long sys_socketcall_wrapper(int call, unsigned long __user * args)
 {
   unsigned long a[6];
   unsigned long a0, a1;
   int err;
+  struct hp_message *msg;
+
+  /* Do nothing against non-observed node */
+  if (NOT_OBSERVED()) {
+    return original_sys_socketcall(call, args);
+  }
 
   if (call < 1 || call > SYS_ACCEPT4)
     return -EINVAL;
@@ -274,11 +345,15 @@ asmlinkage long sys_socketcall_wrapper(int call, unsigned long __user * args)
   a0 = a[0];
   a1 = a[1];
 
-  //  print_call_name(call);
 
+
+  // record_call_name(call);
+  //  print_call_name(call);
   switch(call) {
   case SYS_CONNECT:
     err = sys_connect_wrapper(call, args, a0, (struct sockaddr __user *) a1, a[2]);
+    msg = hp_message_syscall("connect");
+    message_server_record(msg);
     break;
   case SYS_BIND:
     err = sys_bind_wrapper(call, args, a0, (struct sockaddr __user *) a1, a[2]);
@@ -292,18 +367,6 @@ asmlinkage long sys_socketcall_wrapper(int call, unsigned long __user * args)
 
 
 MAKE_REPLACE_SYSCALL(socketcall);
-/*
-static long sys_newuname_wrapper(struct new_utsname __user *name)
-{
-  long ret = 0;
-  ret = original_sys_newuname 
-  return ret;
-}
-
-
-MAKE_REPLACE_SYSCALL(uname);
-
-*/
 
 int replace_syscalls_networks(void)
 {
@@ -322,6 +385,7 @@ int restore_syscalls_networks(void)
   CLEANUP_SYSCALL(socketcall);
   return 0;
 }
+
 
 static void print_call_name(int call)
 {

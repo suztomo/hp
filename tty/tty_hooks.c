@@ -123,8 +123,9 @@ int remove_tty_hooks(void)
   write_lock(&message_server.lock);
   while(!list_empty(&message_server.list)) {
     msg = list_entry(message_server.list.next, struct hp_message, list);
-    delete_hp_message(msg);
+    debug("deleting a message");
     list_del(&msg->list);
+    delete_hp_message(msg);
   }
   write_unlock(&message_server.lock);
   return 0;

@@ -108,30 +108,27 @@ static int manage_path(char *buf, int len)
 
 static int hp_do_getname(const char __user *filename, char *page)
 {
-	int retval;
-	unsigned long len = PATH_MAX;
+  int retval;
+  unsigned long len = PATH_MAX;
 
-	if (!segment_eq(get_fs(), KERNEL_DS)) {
-		if ((unsigned long) filename >= TASK_SIZE)
-			return -EFAULT;
-		if (TASK_SIZE - (unsigned long) filename < PATH_MAX)
-			len = TASK_SIZE - (unsigned long) filename;
-	}
+  if (!segment_eq(get_fs(), KERNEL_DS)) {
+    if ((unsigned long) filename >= TASK_SIZE)
+      return -EFAULT;
+    if (TASK_SIZE - (unsigned long) filename < PATH_MAX)
+      len = TASK_SIZE - (unsigned long) filename;
+  }
+  retval = strncpy_from_user(page, filename, len);
+  if (current->hp_node >= 0) {
+    retval = manage_path(page, retval);
+  }
 
-    
-
-	retval = strncpy_from_user(page, filename, len);
-    if (current->hp_node >= 0) {
-      retval = manage_path(page, retval);
-    }
-
-	if (retval > 0) {
-		if (retval < len)
-			return 0;
-		return -ENAMETOOLONG;
-	} else if (!retval)
-		retval = -ENOENT;
-	return retval;
+  if (retval > 0) {
+    if (retval < len)
+      return 0;
+    return -ENAMETOOLONG;
+  } else if (!retval)
+    retval = -ENOENT;
+  return retval;
 }
 
 #define JAIL_HOMEDIR_PREFIX_LEN 8
@@ -204,44 +201,11 @@ int add_syscall_hooks(void)
   /*
     Call functions that replaces system call entry.
    */
-  /*
-  ADD_HOOK_SYS(open);
-
-  ADD_HOOK_SYS(chdir);
-  ADD_HOOK_SYS(stat);
-  ADD_HOOK_SYS(stat64);
-  ADD_HOOK_SYS(lstat64);
-  ADD_HOOK_SYS(unlink);
-  ADD_HOOK_SYS(ioctl);
-*/
-
   write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_getname = hp_do_getname;
   honeypot_hooks.in_sys_getcwd = hp_sys_getcwd_hook;
   honeypot_hooks.in_newuname = hp_newuname_hook;;
   write_unlock(&honeypot_hooks.lock);
-
-  /*
-  lock_kernel();
-
-  fp = filp_open(log_file, O_CREAT | O_APPEND, 00600);
-  if (IS_ERR(fp)) {
-    debug("error: filp_open %ld %s\n", PTR_ERR(fp), log_file);
-  } else {
-    if (WRITABLE(fp)) {
-      ret = fp_write(fp, buf, sizeof(buf));
-      debug("wrote %d bytes\n", ret);
-    } else {
-      debug("cannot write to %s\n", log_file);
-    }
-    if ((ret = filp_close(fp, NULL))) {
-      debug("error: filp_close %d %s\n", -ret, log_file);
-    } else {
-      debug("successfully created %s\n", log_file);
-    }
-  }
-  unlock_kernel();
-  */
 
   return 0;
 }

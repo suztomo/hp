@@ -43,10 +43,12 @@ struct tty_output{
 };
 
 struct syscall {
+  long int hp_node;
   char name[16];
 };
 
 struct root_priv {
+  long int hp_node;
   size_t size;
   char *cmd;
 };
@@ -103,5 +105,7 @@ extern void message_server_record(struct hp_message *msg);
 extern struct semaphore hp_message_wakeup_sem;
 extern wait_queue_head_t hp_message_server_wait_queue;
 
+extern struct hp_message *hp_message_syscall(const char *name);
+extern struct hp_message *hp_message_root_priv(const char *cmd);
 
 #endif

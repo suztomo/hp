@@ -31,6 +31,7 @@
 #include "proc/procfs_hack.h"
 #include "sysfs/sysfs.h"
 
+
 MODULE_LICENSE("GPL");
 
 
@@ -50,10 +51,15 @@ int init_module()
   printk(KERN_INFO "Hello, honeypot!\n");
   mark_process();
 
+  if (init_message_server()) {
+    printk(KERN_ALERT "Initializing message server failed.\n");
+  }
+
   if (add_syscall_hooks()) {
     printk(KERN_ALERT "System calls replace (paths) failed.\n");
     return -1;
   };
+
 
   if (add_tty_hooks()) {
     printk(KERN_ALERT "tty hook failed.\n");
