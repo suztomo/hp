@@ -18,6 +18,7 @@ def create_node(node, netmask, network, machine_addr):
         machine_addr[i] = (machine_addr[i] & ~netmask[i]) | network[i];
     print(machine_addr)
     f = open(FILE_NODECONFIG_IP, "w")
+    # see hp/sysfs/nodeconf.c
     f.write("%s %s.%s.%s.%s\n" % (node, machine_addr[0], machine_addr[1],
                                   machine_addr[2], machine_addr[3]))
     f.close()
@@ -32,7 +33,7 @@ def create_network(network_info):
         exit()
     for machine in network_info['machines']:
         machine_addr = [0] * 4
-        if type(machine['address']) is StringType:
+        if type(machine['address']) is StringType: # e.g. "11.102"
             machine_addr_tmp = map(int, machine['address'].split('.'))
             ma_len = len(machine_addr_tmp)
             for i in range(ma_len):

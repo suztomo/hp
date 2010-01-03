@@ -23,10 +23,11 @@ int hp_nodeconf_ip_write(struct hp_io_buffer *buf)
   int i;
 
   debug("*** %s\n", buf->write_buf);
+  /* "<node id> <ip addr contains three dots>" */
   match_count  = sscanf(buf->write_buf, "%d %d.%d.%d.%d", &hp_node,
                         &ip_addr[0],&ip_addr[1],&ip_addr[2],&ip_addr[3]);
   if (match_count != 5) {
-    printk(KERN_INFO "invalid arguments.\n");
+    alert(KERN_INFO "invalid arguments.\n");
   } else {
     debug( "Node:%d IP:%d.%d.%d.%d\n", hp_node,
            ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
