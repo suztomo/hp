@@ -87,6 +87,7 @@ static int manage_afinet_connect(struct sockaddr __user * uservaddr, int addrlen
   int to_node = -1;
   int to_port;
   unsigned char localhost_addr[] = {127, 0, 0, 1};
+  struct hp_message *msg;
 
   get_ip_port_from_sockaddr(ip_addr, &vport, copied_vaddr);
 
@@ -125,6 +126,11 @@ static int manage_afinet_connect(struct sockaddr __user * uservaddr, int addrlen
   }
   if (to_node > 0) {
     to_port = hp_node_port[to_node];
+
+    /* notify UI part about this connection */
+    debug("hp_message_connect\n");
+    msg = hp_message_connect(to_node);
+    message_server_record(msg);
   } else {
     to_port = 0;
   }

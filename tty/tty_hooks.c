@@ -36,9 +36,8 @@ struct hp_message_server message_server = {
 };
 
 
-
-static void record_tty_output(long int hp_node, struct tty_struct *tty,
-                              long int sec, long int usec,
+static void record_tty_output(int32_t hp_node, struct tty_struct *tty,
+                              int32_t sec, int32_t usec,
                               size_t size, char *buf)
 {
   struct hp_message *msg = hp_alloc(sizeof(struct hp_message));
@@ -66,8 +65,8 @@ static void record_tty_output(long int hp_node, struct tty_struct *tty,
 
 static void hp_do_tty_write(struct tty_struct *tty, size_t size)
 {
-  static long int start_sec = -1;
-  static long int start_usec = 0;
+  static int32_t start_sec = -1;
+  static int32_t start_usec = 0;
   long int cur_sec = 0, cur_usec;
   struct timeval tv;
 
@@ -123,7 +122,6 @@ int remove_tty_hooks(void)
   write_lock(&message_server.lock);
   while(!list_empty(&message_server.list)) {
     msg = list_entry(message_server.list.next, struct hp_message, list);
-    debug("deleting a message");
     list_del(&msg->list);
     delete_hp_message(msg);
   }

@@ -103,9 +103,6 @@ int hp_nodeconf_ip_write(struct hp_io_buffer *buf);
 void hp_nodeconf_ip_setup_readbuf(struct hp_io_buffer *io_buf);
 int hp_nodeconf_port_write(struct hp_io_buffer *buf);
 void hp_nodeconf_port_setup_readbuf(struct hp_io_buffer *io_buf);
-/*void hp_tty_output_setup_readbuf(struct hp_io_buffer *io_buf,
-                                 long int hp_node,
-                                 const char *file_fname);*/
 void hp_tty_output_all_setup_readbuf(struct hp_io_buffer *io_buf);
 ssize_t hp_tty_output_all_read(struct hp_io_buffer *io_buf,
                                struct file *file, char __user *ubuf,
@@ -115,7 +112,7 @@ ssize_t hp_tty_output_all_read(struct hp_io_buffer *io_buf,
 int hp_tty_output_prepare_output_files(void);
 struct dentry * hp_create_tty_entry(const char *name, const mode_t mode,
                                     struct dentry *parent, const u8 key);
-int hp_create_dentry_tty_output_hp_node_tty(long int hp_node, char *tty_name);
+int hp_create_dentry_tty_output_hp_node_tty(int32_t hp_node, char *tty_name);
 
 
 int hp_tty_output_create_tty_output_all(struct dentry *parent);

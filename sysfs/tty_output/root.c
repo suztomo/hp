@@ -36,7 +36,7 @@ void notify_dir_creation_to_parent(struct dentry *dentry)
     return;
 }
 
-int create_dentry_tty_output_hp_node(long int hp_node)
+int create_dentry_tty_output_hp_node(int32_t hp_node)
 {
   struct dentry *parent_dir = hp_dentries[HP_DENTRY_KEY_TTY_OUTPUT];
   struct dentry *hp_node_dir;
@@ -119,7 +119,7 @@ struct dentry * hp_create_tty_entry(const char *name, const mode_t mode,
   Creates output file as "/sys/kernel/security/hp/tty_output/32/tty33"
   specifying <hp_node> and <tty_name>
  */
-int create_dentry_tty_output_hp_node_tty(long int hp_node, char *tty_name)
+int create_dentry_tty_output_hp_node_tty(int32_t hp_node, char *tty_name)
 {
   int ret;
   struct dentry *parent;
@@ -159,7 +159,7 @@ int create_dentry_tty_output_hp_node_tty(long int hp_node, char *tty_name)
 
 struct tty_output_filename {
   struct list_head list;
-  long int hp_node;
+  int32_t hp_node;
   char tty_name[TTY_NAME_LEN];
 };
 
@@ -255,7 +255,6 @@ int hp_cleanup_tty_output_sysfs(void)
    */
   while(!list_empty(&tty_dentry_server.list)) {
     td = list_entry(tty_dentry_server.list.next, struct tty_dentry, list);
-    debug("*** deleting %d\n", i++);
     list_del(&(td->list));
     securityfs_remove(td->de);
   }

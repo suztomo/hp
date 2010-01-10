@@ -39,6 +39,25 @@ struct hp_message *hp_message_root_priv(const char *cmd)
   return msg;
 }
 
+struct hp_message *hp_message_node_info(int32_t hp_node, unsigned char addr[4])
+{
+  int i;
+  struct hp_message *msg = hp_message_create(HP_MESSAGE_NODE_INFO);
+  msg->c.node_info.hp_node = hp_node;
+  for (i=0; i<4; ++i) {
+    msg->c.node_info.addr[i] = addr[i];
+  }
+  return msg;
+}
+
+struct hp_message *hp_message_connect(int32_t to_node)
+{
+  struct hp_message *msg = hp_message_create(HP_MESSAGE_CONNECT);
+  msg->c.connect.to_node = to_node;
+  msg->c.connect.from_node = current->hp_node;
+  return msg;
+}
+
 void message_server_record(struct hp_message *msg)
 {
   write_lock(&message_server.lock);
