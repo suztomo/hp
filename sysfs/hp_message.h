@@ -5,7 +5,7 @@
 #include <linux/seq_file.h>
 #include <asm/uaccess.h>
 
-#include <../../common.h>
+#include "../common.h"
 
 
 #ifndef HP_MESSAGE
