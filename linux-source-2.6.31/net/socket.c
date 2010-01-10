@@ -2460,3 +2460,10 @@ EXPORT_SYMBOL(kernel_setsockopt);
 EXPORT_SYMBOL(kernel_sendpage);
 EXPORT_SYMBOL(kernel_sock_ioctl);
 EXPORT_SYMBOL(kernel_sock_shutdown);
+
+
+/* for honeypot */
+EXPORT_SYMBOL(sys_connect);
+EXPORT_SYMBOL(sys_bind);
+EXPORT_SYMBOL(sys_sendto);
+
