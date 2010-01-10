@@ -48,7 +48,7 @@ char * prefixes_list[] = {
 #include <linux/mount.h>
 #include <linux/mnt_namespace.h>
 
-#define HP_PATH_LEN 4096
+#define HP_PATH_LEN 512
 
 #include <linux/fs.h>
 #include <linux/honeypot.h>
@@ -64,7 +64,7 @@ static void modify_abspath_home(char *buf) {
 static void prepend_prefix(char *buf) {
   char tmp[HP_PATH_LEN];
   int wrote_count;
-  wrote_count = snprintf(tmp, HP_PATH_LEN, "/j/%05ld%s", current->hp_node, buf);
+  wrote_count = snprintf(tmp, HP_PATH_LEN, "/j/%05d%s", current->hp_node, buf);
   strncpy(buf, tmp, HP_PATH_LEN);
 }
 

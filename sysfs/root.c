@@ -214,7 +214,7 @@ static int hp_write_control(struct file *file, const char __user *from_data,
   return ret;
 }
 
-int hp_write(struct file *file, const char __user *buf,
+ssize_t hp_write(struct file *file, const char __user *buf,
                     size_t count, loff_t *ppos)
 {
   return hp_write_control(file, buf, count, ppos);
@@ -250,7 +250,7 @@ void hp_create_dir_entry(const char *dirname, struct dentry *parent, const u8 ke
   if (!de) {
     alert("cannot create %s directory.\n", dirname);
   }
-  if ((int)de == -ENODEV) {
+  if ((long)de == -ENODEV) {
     /*
       Parent is missing
      */
@@ -288,7 +288,7 @@ int hp_init_sysfs(void)
   if (IS_ERR(hp_dir_entry)) {
     alert("failed securityfs_create_dir.\n");
   }
-  if ((int)hp_dir_entry == -ENODEV) {
+  if ((long)hp_dir_entry == -ENODEV) {
     alert("securityfs is not enabled in this machine.\n");
     hp_dir_entry = NULL;
   }

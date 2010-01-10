@@ -15,7 +15,7 @@
   Setups node->ip relation.
   Called when a line is passed to /sys/kernel/security/hp/node_ip.
  */
-int hp_nodeconf_ip_write(struct hp_io_buffer *buf)
+ssize_t hp_nodeconf_ip_write(struct hp_io_buffer *buf)
 {
   int ip_addr[4];
   int hp_node;
@@ -47,7 +47,7 @@ int hp_nodeconf_ip_write(struct hp_io_buffer *buf)
   Setups node->port configuration.
   Called when a line is passed to /sys/kernel/security/hp/node_port.
  */
-int hp_nodeconf_port_write(struct hp_io_buffer *buf)
+ssize_t hp_nodeconf_port_write(struct hp_io_buffer *buf)
 {
   int hp_node;
   int vport;

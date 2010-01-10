@@ -371,8 +371,9 @@ asmlinkage long sys_socketcall_wrapper(int call, unsigned long __user * args)
   return err;
 }
 
-
+#ifdef __NR_socketcall
 MAKE_REPLACE_SYSCALL(socketcall);
+#endif
 
 int replace_syscalls_networks(void)
 {
@@ -382,13 +383,17 @@ int replace_syscalls_networks(void)
     Replaces system call entry.
    */
 
+#ifdef __NR_socketcall
   ADD_HOOK_SYS(socketcall);
+#endif
   return 0;
 }
 
 int restore_syscalls_networks(void)
 {
+#ifdef __NR_socketcall
   CLEANUP_SYSCALL(socketcall);
+#endif
   return 0;
 }
 

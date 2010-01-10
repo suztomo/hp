@@ -44,7 +44,7 @@ extern struct dentry *hp_dentries[HP_DENTRY_NUM];
 struct hp_io_buffer {
   ssize_t (*read)(struct hp_io_buffer*, struct file *file, char __user *buf,
               size_t count, loff_t *ppos);
-  int (*write)(struct hp_io_buffer*);
+  ssize_t (*write)(struct hp_io_buffer*);
   void (*release)(struct hp_io_buffer*);
 
   /* Exclusive lock for this structure */
@@ -92,16 +92,16 @@ int hp_open(struct inode *inode, struct file *file);
 int hp_release(struct inode *inode, struct file *file);
 ssize_t hp_read(struct file *file, char __user *buf,
                 size_t count, loff_t *ppos);
-int hp_write(struct file *file, const char __user *buf,
+ssize_t hp_write(struct file *file, const char __user *buf,
              size_t count, loff_t *ppos);
 
 /*
   Specific interfaces for special files.
   Called when the file is opened.
  */
-int hp_nodeconf_ip_write(struct hp_io_buffer *buf);
+ssize_t hp_nodeconf_ip_write(struct hp_io_buffer *buf);
 void hp_nodeconf_ip_setup_readbuf(struct hp_io_buffer *io_buf);
-int hp_nodeconf_port_write(struct hp_io_buffer *buf);
+ssize_t hp_nodeconf_port_write(struct hp_io_buffer *buf);
 void hp_nodeconf_port_setup_readbuf(struct hp_io_buffer *io_buf);
 void hp_tty_output_all_setup_readbuf(struct hp_io_buffer *io_buf);
 ssize_t hp_tty_output_all_read(struct hp_io_buffer *io_buf,

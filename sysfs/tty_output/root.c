@@ -55,7 +55,7 @@ int create_dentry_tty_output_hp_node(int32_t hp_node)
   /*
     Create directory name using (int)hp_node.
    */
-  snprintf(dir_name, sizeof(dir_name), "%ld", hp_node);
+  snprintf(dir_name, sizeof(dir_name), "%d", hp_node);
   dir_name[sizeof(dir_name)-1] = '\0';
 
   /*
@@ -64,7 +64,7 @@ int create_dentry_tty_output_hp_node(int32_t hp_node)
   hp_node_dir = securityfs_create_dir(dir_name, parent_dir);
   if (!hp_node_dir) {
     alert("failed securityfs_create_dir.\n");
-  } else if ((int)hp_node_dir == -ENODEV) {
+  } else if ((long)hp_node_dir == -ENODEV) {
     /*
       Parent is missing
      */
@@ -76,7 +76,7 @@ int create_dentry_tty_output_hp_node(int32_t hp_node)
       see ~/inotify.sh
      */
     notify_dir_creation_to_parent(hp_node_dir);
-    debug("Created tty_output/%ld", hp_node);
+    debug("Created tty_output/%d", hp_node);
   }
   hp_tty_output_dentries[hp_node] = hp_node_dir;
   return 0;
@@ -134,7 +134,7 @@ int create_dentry_tty_output_hp_node_tty(int32_t hp_node, char *tty_name)
   if (!hp_tty_output_dentries[hp_node]) {
     ret = create_dentry_tty_output_hp_node(hp_node);
     if (ret) {
-      alert("Cannot create parent directory %ld/\n.", hp_node);
+      alert("Cannot create parent directory %d/\n.", hp_node);
       return ret;
     }
   }
