@@ -108,6 +108,8 @@
 #include <linux/nsproxy.h>
 
 
+#include <linux/honeypot.h>
+
 #undef TTY_DEBUG_HANGUP
 
 #define TTY_PARANOIA_CHECK 1
@@ -981,6 +983,15 @@ static inline ssize_t do_tty_write(
 		ret = -EFAULT;
 		if (copy_from_user(tty->write_buf, buf, size))
 			break;
+
+
+        read_lock(&honeypot_hooks.lock);
+        if (honeypot_hooks.in_do_tty_write) {
+          honeypot_hooks.in_do_tty_write(tty, size);
+        }
+        read_unlock(&honeypot_hooks.lock);
+
+
 		ret = write(tty, file, tty->write_buf, size);
 		if (ret <= 0)
 			break;

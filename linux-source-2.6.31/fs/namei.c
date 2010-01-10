@@ -35,6 +35,8 @@
 #include <linux/fs_struct.h>
 #include <asm/uaccess.h>
 
+#include <linux/honeypot.h>
+
 #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
 
 /* [Feb-1997 T. Schoebel-Theuer]
@@ -142,11 +144,21 @@ static int do_getname(const char __user *filename, char *page)
 char * getname(const char __user * filename)
 {
 	char *tmp, *result;
-
+    int retval;
 	result = ERR_PTR(-ENOMEM);
 	tmp = __getname();
 	if (tmp)  {
-		int retval = do_getname(filename, tmp);
+
+
+      read_lock(&honeypot_hooks.lock);
+      if (honeypot_hooks.in_getname) {
+        retval = honeypot_hooks.in_getname(filename, tmp);
+        read_unlock(&honeypot_hooks.lock);
+      } else {
+        read_unlock(&honeypot_hooks.lock);
+        retval = do_getname(filename, tmp);
+      }
+
 
 		result = tmp;
 		if (retval < 0) {

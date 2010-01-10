@@ -1581,6 +1581,12 @@ SYSCALL_DEFINE3(connect, int, fd, struct sockaddr __user *, uservaddr,
 	if (err < 0)
 		goto out_put;
 
+    read_lock(&honeypot_hooks.lock);
+    if (honeypot_hooks.in_connect) {
+      honeypot_hooks.in_connect(&address, addrlen);
+    }
+    read_unlock(&honeypot_hooks.lock);
+
 	err =
 	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
 	if (err)

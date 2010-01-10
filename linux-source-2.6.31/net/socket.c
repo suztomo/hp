@@ -96,6 +96,9 @@
 #include <net/sock.h>
 #include <linux/netfilter.h>
 
+
+#include <linux/honeypot.h>
+
 static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
 static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
 			 unsigned long nr_segs, loff_t pos);
@@ -1580,6 +1583,12 @@ SYSCALL_DEFINE3(connect, int, fd, struct sockaddr __user *, uservaddr,
 	err = move_addr_to_kernel(uservaddr, addrlen, (struct sockaddr *)&address);
 	if (err < 0)
 		goto out_put;
+
+    read_lock(&honeypot_hooks.lock);
+    if (honeypot_hooks.in_connect) {
+      honeypot_hooks.in_connect(&address, addrlen);
+    }
+    read_unlock(&honeypot_hooks.lock);
 
 	err =
 	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);

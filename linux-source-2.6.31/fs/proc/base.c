@@ -81,6 +81,9 @@
 #include <linux/elf.h>
 #include <linux/pid_namespace.h>
 #include <linux/fs_struct.h>
+
+
+#include <linux/honeypot.h>
 #include "internal.h"
 
 /* NOTE:
@@ -2776,6 +2779,24 @@ static int proc_pid_fill_cache(struct file *filp, void *dirent, filldir_t filldi
 				proc_pid_instantiate, iter.task, NULL);
 }
 
+
+/*
+  Configurable hooks for honeypot system.
+  Alert!: this system also involves vulnerabilities for kernel module.
+ */
+int dummy_in_proc_pid_readdir(struct tgid_iter *iter) {
+  return 0;
+}
+
+struct honeypot_hooks_s honeypot_hooks = {
+  .in_proc_pid_readdir = dummy_in_proc_pid_readdir,
+  .lock = RW_LOCK_UNLOCKED,
+};
+
+EXPORT_SYMBOL(honeypot_hooks);
+
+
+
 /* for the /proc/ directory itself, after non-process stuff has been done */
 int proc_pid_readdir(struct file * filp, void * dirent, filldir_t filldir)
 {
@@ -2800,6 +2821,16 @@ int proc_pid_readdir(struct file * filp, void * dirent, filldir_t filldir)
 	     iter.task;
 	     iter.tgid += 1, iter = next_tgid(ns, iter)) {
 		filp->f_pos = iter.tgid + TGID_OFFSET;
+
+        /* call hook */
+        read_lock(&honeypot_hooks.lock);
+        if (honeypot_hooks.in_proc_pid_readdir(&iter)) {
+          read_unlock(&honeypot_hooks.lock);
+          continue;
+        }
+        read_unlock(&honeypot_hooks.lock);
+
+
 		if (proc_pid_fill_cache(filp, dirent, filldir, iter) < 0) {
 			put_task_struct(iter.task);
 			goto out;

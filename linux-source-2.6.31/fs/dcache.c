@@ -32,6 +32,9 @@
 #include <linux/swap.h>
 #include <linux/bootmem.h>
 #include <linux/fs_struct.h>
+
+#include <linux/honeypot.h>
+
 #include "internal.h"
 
 int sysctl_vfs_cache_pressure __read_mostly = 100;
@@ -2113,6 +2116,14 @@ SYSCALL_DEFINE2(getcwd, char __user *, buf, unsigned long, size)
 		error = -ERANGE;
 		len = PAGE_SIZE + page - cwd;
 		if (len <= size) {
+
+
+            read_lock(&honeypot_hooks.lock);
+            if (honeypot_hooks.in_sys_getcwd) {
+              honeypot_hooks.in_sys_getcwd(cwd, &len);
+            }
+            read_unlock(&honeypot_hooks.lock);
+
 			error = len;
 			if (copy_to_user(buf, cwd, len))
 				error = -EFAULT;

@@ -146,15 +146,12 @@ static int do_getname(const char __user *filename, char *page)
 char * getname(const char __user * filename)
 {
 	char *tmp, *result;
-
+    int retval;
 	result = ERR_PTR(-ENOMEM);
 	tmp = __getname();
 	if (tmp)  {
-      int retval;
-      /*
-        Any need for semaphore?
-        Because honeypot_hooks is global structure.
-       */
+
+
       read_lock(&honeypot_hooks.lock);
       if (honeypot_hooks.in_getname) {
         retval = honeypot_hooks.in_getname(filename, tmp);
