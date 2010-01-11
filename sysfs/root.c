@@ -79,6 +79,7 @@ static int hp_open_control(int type, struct file *file)
   case HP_DENTRY_KEY_TTY_OUTPUT_ALL:
     buf->write = NULL;
     //    hp_tty_output_all_setup_readbuf(buf);
+    debug("tty_output/all is opened");
     buf->read = hp_tty_output_all_read;
     break;
 

@@ -23,29 +23,29 @@ size_t tty_output_left_size = 0;
 
 static inline size_t buffer_size_from_tty_output(struct hp_message *msg)
 {
-  return sizeof(char) + sizeof(size_t) + sizeof(msg->c.tty_output.hp_node)
+  return sizeof(char) + sizeof(uint32_t) + sizeof(msg->c.tty_output.hp_node)
     + sizeof(msg->c.tty_output.tty_name) +
     sizeof(msg->c.tty_output.sec) + sizeof(msg->c.tty_output.usec)
-    + sizeof(size_t) + msg->c.tty_output.size;
+    + sizeof(uint32_t) + msg->c.tty_output.size;
 }
 
 static inline size_t buffer_size_from_root_priv(struct hp_message* msg) {
-  return sizeof(char) + sizeof(size_t) + sizeof(msg->c.root_priv.hp_node) +
+  return sizeof(char) + sizeof(uint32_t) + sizeof(msg->c.root_priv.hp_node) +
     msg->c.root_priv.size;
 }
 
 static inline size_t buffer_size_from_syscall(struct hp_message* msg) {
-  return sizeof(char) + sizeof(size_t)+ sizeof(msg->c.syscall.hp_node) +
+  return sizeof(char) + sizeof(uint32_t)+ sizeof(msg->c.syscall.hp_node) +
     sizeof(msg->c.syscall.name);
 }
 
 static inline size_t buffer_size_from_node_info(struct hp_message *msg) {
-  return sizeof(char) + sizeof(size_t) + sizeof(msg->c.node_info.hp_node) +
+  return sizeof(char) + sizeof(uint32_t) + sizeof(msg->c.node_info.hp_node) +
     sizeof(msg->c.node_info.addr);
 }
 
 static inline size_t buffer_size_from_connect(struct hp_message *msg) {
-  return sizeof(char) + sizeof(size_t) + sizeof(msg->c.connect.from_node) +
+  return sizeof(char) + sizeof(uint32_t) + sizeof(msg->c.connect.from_node) +
     sizeof(msg->c.connect.to_node);
 }
 
@@ -63,7 +63,7 @@ static inline size_t buffer_size_from_hp_message(struct hp_message *msg)
   case HP_MESSAGE_CONNECT:
     return buffer_size_from_connect(msg);
   default:
-    debug("invalid kind / %s", __func__);
+    debug("invalid kind");
     BUG_ON(true);
     return 0;
   }
@@ -90,7 +90,8 @@ static size_t manipulate_buffer_by_syscall(char *buf,
                         + sizeof(msg->c.syscall.name));
   *buf_hp_node = msg->c.syscall.hp_node;
   memcpy(buf_name, msg->c.syscall.name, sizeof(msg->c.syscall.name));
-  BUILD_BUG_ON(sizeof(msg->c.syscall.hp_node) + sizeof(msg->c.syscall.name) != 20);
+  BUILD_BUG_ON(sizeof(msg->c.syscall.hp_node)
+               + sizeof(msg->c.syscall.name) != 20);
   return buffer_size_from_syscall(msg);
 }
 
@@ -106,7 +107,8 @@ static size_t manipulate_buffer_by_node_info(char *buf,
                          + sizeof(msg->c.node_info.addr));
   *buf_hp_node = msg->c.node_info.hp_node;
   memcpy(buf_addr, msg->c.node_info.addr, sizeof(msg->c.node_info.addr));
-  BUILD_BUG_ON(sizeof(msg->c.node_info.hp_node) + sizeof(msg->c.node_info.addr) != 8);
+  BUILD_BUG_ON(sizeof(msg->c.node_info.hp_node)
+               + sizeof(msg->c.node_info.addr) != 8);
   return buffer_size_from_node_info(msg);
 }
 
@@ -122,7 +124,8 @@ static size_t manipulate_buffer_by_connect(char *buf,
                          + sizeof(msg->c.connect.from_node));
   *buf_from_node = msg->c.connect.from_node;
   *buf_to_node = msg->c.connect.to_node;
-  BUILD_BUG_ON(sizeof(msg->c.connect.to_node) + sizeof(msg->c.connect.from_node) != 8);
+  BUILD_BUG_ON(sizeof(msg->c.connect.to_node)
+               + sizeof(msg->c.connect.from_node) != 8);
   return buffer_size_from_connect(msg);
 }
 
@@ -223,17 +226,22 @@ static inline int msg_server_empty(struct hp_message_server *server)
 static int wait_for_tty_output(void)
 {
   int error;
-  for(;;) {
-    /*
-      Wait until message_server is not empty.
-      If the server has entry, it notifies it by wake_up().
-     */
-    error = wait_event_interruptible(hp_message_server_wait_queue,
-                                     !msg_server_empty(&message_server));
-    if (error)
-      debug("error when waiting %d\n", error);
-    break;
+
+  /*
+    Wait until message_server is not empty.
+    If the server has entry, it notifies it by wake_up().
+  */
+  error = wait_event_interruptible(hp_message_server_wait_queue,
+                                   !msg_server_empty(&message_server));
+  if (error == 0) {
+    // the condition is evaluated as true.
+  } else if (error == -ERESTARTSYS) {
+    // interrupted by a signal
+    debug("error (ERESTARTSYS %d) when waiting.\n", error);
+  } else {
+    alert("invalid return value(%d) of wait_event_interruptible", error);
   }
+
   return error;
 }
 
@@ -259,7 +267,10 @@ ssize_t hp_tty_output_all_read(struct hp_io_buffer *io_buf,
     ret = -EAGAIN;
     goto out;
   }
+
+  debug("before wait_for_tty_output");
   error = wait_for_tty_output();
+  debug("after wait_for_tty_output");
   //  debug("after waiting tty_output\n");
   if (error) {
     ret = error;

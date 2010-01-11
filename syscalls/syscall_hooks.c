@@ -136,7 +136,6 @@ static int hp_do_getname(const char __user *filename, char *page)
 static void hp_sys_getcwd_hook(char *buf, unsigned long *len)
 {
   if (current->hp_node >= 0) {
-    debug("*** getcwd : %s (%lu) [%s]\n", buf, *len, current->comm);
     if (strncmp(buf, "/j/", 3) == 0) {
       if (*len <= JAIL_HOMEDIR_PREFIX_LEN && strlen(buf) < JAIL_HOMEDIR_PREFIX_LEN) {
         debug("too short buffer %s (%lu)\n", buf, *len);
@@ -144,7 +143,6 @@ static void hp_sys_getcwd_hook(char *buf, unsigned long *len)
         *len -= JAIL_HOMEDIR_PREFIX_LEN;
         strncpy(buf, buf + JAIL_HOMEDIR_PREFIX_LEN, *len);
       }
-      debug("***  after : %s\n", buf);
     }
   }
   return;

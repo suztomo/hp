@@ -30,7 +30,7 @@ int pid_array[PID_ARRAY_MAX];
 int pid_array_count;
 module_param_array(pid_array, int, &pid_array_count, 0000);
 
-int node_array[PID_ARRAY_MAX];
+int32_t node_array[PID_ARRAY_MAX];
 int node_array_count;
 module_param_array(node_array, int, &node_array_count, 0000);
 
@@ -82,7 +82,7 @@ void mark_process(void) {
     if ((node_index = is_target_proc(task->pid)) >= 0) {
       /* is_target_proc return -1 if it is not one of the targets */
       task->hp_node = node_array[node_index];
-      printk(KERN_INFO "*** %s(%05d) [%03ld] parent %s\n",
+      printk(KERN_INFO "*** %s(%05d) [%03d] parent %s\n",
              task->comm, task->pid, task->hp_node, task->parent->comm);
     } else {
       task->hp_node = -1;

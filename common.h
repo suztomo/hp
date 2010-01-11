@@ -10,7 +10,9 @@ void hp_free(const void *p);
 
 #define HP_NODE_NUM 100
 
-#define debug(...) {printk(KERN_DEBUG __VA_ARGS__);}
+#define debug(...) { \
+  printk(KERN_DEBUG __VA_ARGS__);\
+  printk(KERN_DEBUG "   - %s:%u @%s ", __FILE__, __LINE__, __func__);}
 #define alert(...) {printk(KERN_ALERT __VA_ARGS__);}
 
 extern unsigned char hp_node_ipaddr[HP_NODE_NUM+1][4];
