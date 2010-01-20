@@ -1,6 +1,6 @@
 #!/bin/zsh
 SSHD_PORT_FROM=10022
-SSHD_PORT_TO=10923
+SSHD_PORT_TO=10922
 SSHD_PORT_SKIP=100
 pkill sshd
 make install
@@ -20,6 +20,4 @@ cd $HOME/hp
 while true; do
     sleep 10
 done
-
-
 

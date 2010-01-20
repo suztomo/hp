@@ -139,26 +139,20 @@ networks:
     network: 192.168.111.0
     machines:
       - hp_node : 1
-        address : 101
+        address : 1
       - hp_node : 2
-        address : "11.102"
+        address : 2
       - hp_node : 3
-        address : 103
+        address : 3
       - hp_node : 4
-        address : 104
+        address : 4
       - hp_node : 5
-        address : 105
+        address : 5
       - hp_node : 6
-        address : 106
+        address : 6
       - hp_node : 7
-        address : 107
+        address : 7
       - hp_node : 8
-        address : 108
+        address : 8
       - hp_node : 9
-        address : 109
-      - hp_node : 10
-        address : 110
-      - hp_node : 11
-        address : 111
-      - hp_node : 12
-        address : 112
+        address : 9

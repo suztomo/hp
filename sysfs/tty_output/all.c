@@ -46,7 +46,8 @@ static inline size_t buffer_size_from_node_info(struct hp_message *msg) {
 
 static inline size_t buffer_size_from_connect(struct hp_message *msg) {
   return sizeof(char) + sizeof(uint32_t) + sizeof(msg->c.connect.from_node) +
-    sizeof(msg->c.connect.to_node);
+    sizeof(msg->c.connect.to_node) + sizeof(msg->c.connect.ip_addr) +
+    sizeof(msg->c.connect.port);
 }
 
 static inline size_t buffer_size_from_hp_message(struct hp_message *msg)
@@ -119,13 +120,20 @@ static size_t manipulate_buffer_by_connect(char *buf,
   uint32_t *buf_size = (uint32_t*)(buf_kind + 1);
   int32_t *buf_from_node = (int32_t*)(buf_size+1);
   uint32_t *buf_to_node = buf_from_node + 1;
+  unsigned char *buf_addr = (unsigned char *)(buf_to_node + 1);
+  uint16_t *buf_port = (uint16_t*)(buf_addr + 4);
   *buf_kind = msg->kind;
-  *buf_size = (uint32_t)(sizeof(msg->c.connect.to_node)
-                         + sizeof(msg->c.connect.from_node));
+  *buf_size = (uint32_t)(buffer_size_from_connect(msg)
+                         - sizeof(char) - sizeof(uint32_t));
   *buf_from_node = msg->c.connect.from_node;
   *buf_to_node = msg->c.connect.to_node;
+  memcpy(buf_addr, msg->c.connect.ip_addr, sizeof(msg->c.connect.ip_addr));
+  *buf_port = msg->c.connect.port;
   BUILD_BUG_ON(sizeof(msg->c.connect.to_node)
-               + sizeof(msg->c.connect.from_node) != 8);
+               + sizeof(msg->c.connect.from_node)
+               + sizeof(msg->c.connect.ip_addr)
+               + sizeof(msg->c.connect.port)
+               != 14);
   return buffer_size_from_connect(msg);
 }
 

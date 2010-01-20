@@ -7,6 +7,8 @@ wait_queue_head_t hp_message_server_wait_queue;
 /*
   Initializes hp_message, given kind.
   kind is option of HP_MESSAGE_*, defined in hp_message.h.
+  The message is destroyed after the message is read from
+  special devices (hp_tty_output_all_read).
  */
 static inline struct hp_message *hp_message_create(char kind) {
   struct hp_message *msg;
@@ -39,7 +41,8 @@ struct hp_message *hp_message_root_priv(const char *cmd)
   return msg;
 }
 
-struct hp_message *hp_message_node_info(int32_t hp_node, unsigned char addr[4])
+struct hp_message *hp_message_node_info(int32_t hp_node,
+                                        const unsigned char addr[4])
 {
   int i;
   struct hp_message *msg = hp_message_create(HP_MESSAGE_NODE_INFO);
@@ -50,11 +53,18 @@ struct hp_message *hp_message_node_info(int32_t hp_node, unsigned char addr[4])
   return msg;
 }
 
-struct hp_message *hp_message_connect(int32_t to_node)
+struct hp_message *hp_message_connect(int32_t to_node,
+                                      const unsigned char addr[4],
+                                      uint16_t port)
 {
   struct hp_message *msg = hp_message_create(HP_MESSAGE_CONNECT);
+  int i;
   msg->c.connect.to_node = to_node;
   msg->c.connect.from_node = current->hp_node;
+  for (i=0; i<4; ++i) {
+    msg->c.connect.ip_addr[i] = addr[i];
+  }
+  msg->c.connect.port = port;
   return msg;
 }
 
@@ -79,3 +89,23 @@ int init_message_server(void)
   rwlock_init(&message_server.lock);
   return 0;
 }
+
+void delete_hp_message(struct hp_message *msg) {
+  BUG_ON(msg == NULL);
+  switch(msg->kind) {
+  case HP_MESSAGE_TTY_OUTPUT:
+    if (msg->c.tty_output.buf) {
+      hp_free(msg->c.tty_output.buf);
+    }
+    break;
+  case HP_MESSAGE_ROOT_PRIV:
+    if (msg->c.root_priv.cmd) {
+      hp_free(msg->c.root_priv.cmd);
+    }
+    break;
+  default: /* normal message need not free its own buffer */
+    break;
+  }
+  hp_free(msg);
+}
+

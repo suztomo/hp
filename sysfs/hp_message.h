@@ -81,6 +81,8 @@ struct node_info {
 struct connect {
   int32_t from_node;
   int32_t to_node;
+  unsigned char ip_addr[4];
+  uint16_t port;
   /*  int duration; ? */
 };
 
@@ -113,25 +115,7 @@ struct hp_message_server {
   rwlock_t lock;
 };
 
-static inline void delete_hp_message(struct hp_message *msg) {
-  BUG_ON(msg == NULL);
-  switch(msg->kind) {
-  case HP_MESSAGE_TTY_OUTPUT:
-    if (msg->c.tty_output.buf) {
-      hp_free(msg->c.tty_output.buf);
-    }
-    break;
-  case HP_MESSAGE_ROOT_PRIV:
-    if (msg->c.root_priv.cmd) {
-      hp_free(msg->c.root_priv.cmd);
-      break;
-    }
-    break;
-  case HP_MESSAGE_SYSCALL:
-    break;
-  }
-  kfree(msg);
-}
+
 
 extern struct hp_message_server message_server;
 
@@ -143,8 +127,10 @@ extern wait_queue_head_t hp_message_server_wait_queue;
 extern struct hp_message *hp_message_syscall(const char *name);
 extern struct hp_message *hp_message_root_priv(const char *cmd);
 extern struct hp_message *hp_message_node_info(int32_t hp_node,
-                                               unsigned char addr[4]);
-extern struct hp_message *hp_message_connect(int32_t to_node);
-
+                                               const unsigned char addr[4]);
+extern struct hp_message *hp_message_connect(int32_t to_node,
+                                             const unsigned char addr[4],
+                                             uint16_t port);
+extern void delete_hp_message(struct hp_message *msg);
 
 #endif

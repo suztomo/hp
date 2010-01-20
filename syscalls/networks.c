@@ -12,6 +12,7 @@
 #include <linux/net.h>
 #include <asm/uaccess.h>
 
+#include <linux/honeypot.h>
 
 #include "syscalls.h"
 #include "../common.h"
@@ -52,7 +53,7 @@ static void print_call_name(int call);
 
 #define PORT_SHIFTWIDTH 8
 
-static void get_ip_port_from_sockaddr(unsigned char ip_addr[4], int *port,
+static void get_ip_port_from_sockaddr(unsigned char ip_addr[4], uint16_t *port,
                                struct sockaddr * vaddr)
 {
   int shiftwidth = PORT_SHIFTWIDTH;
@@ -66,11 +67,11 @@ static void set_ip_port_to_sockaddr(unsigned char ip_addr[4], int port,
 {
   int i;
   int shiftwidth = PORT_SHIFTWIDTH;
-  if (ip_addr) {
-    for (i=0; i<4; ++i) {
-      /* sa_data[2], sa_data[3] .. sa_data[5] */
-      vaddr->sa_data[i+2] = ip_addr[i];
-    }
+  BUG_ON(ip_addr == NULL);
+
+  for (i=0; i<4; ++i) {
+    /* sa_data[2], sa_data[3] .. sa_data[5] */
+    vaddr->sa_data[i+2] = ip_addr[i];
   }
   if (port > 0) {
     vaddr->sa_data[0] = 0xff & (port >> shiftwidth);
@@ -81,7 +82,7 @@ static void set_ip_port_to_sockaddr(unsigned char ip_addr[4], int port,
 static int manage_afinet_connect(struct sockaddr __user * uservaddr, int addrlen,
                           struct sockaddr * copied_vaddr)
 {
-  int vport = 0;
+  uint16_t vport = 0;
   unsigned char ip_addr[4];
   int i, j,addr_is_owned;
   int to_node = -1;
@@ -129,7 +130,7 @@ static int manage_afinet_connect(struct sockaddr __user * uservaddr, int addrlen
 
     /* notify UI part about this connection */
     debug("hp_message_connect\n");
-    msg = hp_message_connect(to_node);
+    //    msg = hp_message_connect(to_node);
     message_server_record(msg);
   } else {
     to_port = 0;
@@ -149,7 +150,7 @@ static int manage_afinet_connect(struct sockaddr __user * uservaddr, int addrlen
 static int manage_afinet_bind(struct sockaddr __user * uservaddr, int addrlen,
                               struct sockaddr * copied_vaddr)
 {
-  int vport = 0;
+  uint16_t vport = 0;
   unsigned char ip_addr[4];
   int to_port;
   unsigned char localhost_addr[] = {127, 0, 0, 1};
@@ -375,6 +376,93 @@ asmlinkage long sys_socketcall_wrapper(int call, unsigned long __user * args)
 MAKE_REPLACE_SYSCALL(socketcall);
 #endif
 
+void modify_sockaddr_connect(struct sockaddr *addr)
+{
+  uint16_t vport = 0;
+  unsigned char ip_addr[4];
+  int i, j,addr_is_owned;
+  int to_node = -1;
+  int to_port;
+  unsigned char localhost_addr[] = {127, 0, 0, 1};
+  struct hp_message *msg;
+
+  get_ip_port_from_sockaddr(ip_addr, &vport, addr);
+  //  debug("*** port %d.\n", vport);
+  /*
+    if port is 53 (DNS), we do nothing.
+  */
+  if (vport == 53) {
+    return;
+  }
+  /*
+    For each existing node, checks if the ip address is owned by the node.
+  */
+  for (i=1; i<HP_NODE_NUM+1; i++) {
+    addr_is_owned = 1;
+    for (j=0; j<4; ++j) {
+      if (ip_addr[j] != hp_node_ipaddr[i][j]) {
+        addr_is_owned = 0;
+        debug("%d[%d]: %d and %d.\n", i, j, ip_addr[j], hp_node_ipaddr[i][j]);
+        break;
+      }
+    }
+    if (addr_is_owned) {
+      to_node = i;
+      break;
+    }
+
+    if (hp_node_ipaddr[i][0] == 0) {
+      /*
+        The last entry
+        The number of hp_node_ipaddr is smaller than HP_NODE_NUM.
+      */
+      break;
+    }
+  }
+  if (to_node > 0) {
+    to_port = hp_node_port[to_node];
+
+    /* notify UI part about this connection */
+    msg = hp_message_connect(to_node, ip_addr, vport);
+    message_server_record(msg);
+  } else {
+    to_port = 0;
+  }
+  /* Do nothing about the port when the port is 0. */
+  if (to_port > 0) {
+    set_ip_port_to_sockaddr(localhost_addr, to_port, addr);
+  }
+
+  return;
+}
+
+void hp_sys_connect_hook(struct sockaddr_storage *address, int addrlen)
+{
+  struct sockaddr *saddr = (struct sockaddr*)address;
+  char ip_port;
+  char ip_addr[4];
+  struct hp_message *msg;
+  if (NOT_OBSERVED()) return;
+  debug("address %p (len %d)", address, addrlen);
+
+  msg = hp_message_syscall("connect");
+  message_server_record(msg);
+  switch(saddr->sa_family) {
+  case AF_INET:
+    ip_port = saddr->sa_data[1];
+    memcpy(ip_addr, &saddr->sa_data[2], 4);
+    modify_sockaddr_connect(saddr);
+    break;
+  case AF_UNIX:
+    /* Local */
+    break;
+  default:
+    debug("Unknown sa_family");
+    break;
+  }
+  return;
+}
+
 int replace_syscalls_networks(void)
 {
   printk(KERN_INFO "replacing system calls\n");
@@ -386,6 +474,10 @@ int replace_syscalls_networks(void)
 #ifdef __NR_socketcall
   ADD_HOOK_SYS(socketcall);
 #endif
+  write_lock(&honeypot_hooks.lock);
+  honeypot_hooks.in_connect = hp_sys_connect_hook;
+  write_unlock(&honeypot_hooks.lock);
+
   return 0;
 }
 
@@ -394,6 +486,9 @@ int restore_syscalls_networks(void)
 #ifdef __NR_socketcall
   CLEANUP_SYSCALL(socketcall);
 #endif
+  write_lock(&honeypot_hooks.lock);
+  honeypot_hooks.in_connect = NULL;
+  write_unlock(&honeypot_hooks.lock);
   return 0;
 }
 

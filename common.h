@@ -5,8 +5,8 @@
 #ifndef HP_COMMON
 #define HP_COMMON
 
-void *hp_alloc(const size_t size);
-void hp_free(const void *p);
+void *hp_alloc(size_t size);
+void hp_free(void *p);
 
 #define HP_NODE_NUM 100
 

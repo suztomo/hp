@@ -6,7 +6,7 @@
 /*
   Allocates specified-sized region.
  */
-void *hp_alloc(const size_t size)
+void *hp_alloc(size_t size)
 {
   void *p = kzalloc(size, GFP_KERNEL);
   if (!p) {
@@ -18,7 +18,7 @@ void *hp_alloc(const size_t size)
 /*
   Frees the region.
 */
-void hp_free(const void *p)
+void hp_free(void *p)
 {
   kfree(p);
 }
