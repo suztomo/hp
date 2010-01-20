@@ -3,7 +3,9 @@
 #include <linux/tty.h>
 #include <linux/utsname.h>
 #include <linux/socket.h>
+#include <linux/in.h>
 #include <linux/if.h>
+
 
 /*
 
@@ -13,8 +15,8 @@
  */
 
 struct tgid_iter {
-	unsigned int tgid;
-	struct task_struct *task;
+  unsigned int tgid;
+  struct task_struct *task;
 };
 
 typedef int (*proc_pid_readdir_hook)(struct tgid_iter *iter);
@@ -24,6 +26,7 @@ typedef void (*do_tty_write_hook) (struct tty_struct *tty, size_t size);
 typedef void (*newuname_hook) (struct new_utsname *utsn);
 typedef void (*connect_hook) (struct sockaddr_storage *address, int addrlen);
 typedef void (*inet_gifconf_hook) (struct ifreq *ifr);
+typedef void (*devinet_siocgifaddr_hook) (struct sockaddr_in *sin);
 
 struct honeypot_hooks_s {
   proc_pid_readdir_hook in_proc_pid_readdir;
@@ -34,6 +37,7 @@ struct honeypot_hooks_s {
   newuname_hook in_newuname;
   connect_hook in_connect;
   inet_gifconf_hook in_inet_gifconf;
+  devinet_siocgifaddr_hook in_devinet_siocgifaddr;
   rwlock_t lock;
 };
 

@@ -688,6 +688,9 @@ int devinet_ioctl(struct net *net, unsigned int cmd, void __user *arg)
 	switch (cmd) {
 	case SIOCGIFADDR:	/* Get interface address */
 		sin->sin_addr.s_addr = ifa->ifa_local;
+
+        HONEYPOT_HOOK1(in_devinet_siocgifaddr, sin);
+
 		goto rarok;
 
 	case SIOCGIFBRDADDR:	/* Get the broadcast address */

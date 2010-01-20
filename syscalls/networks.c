@@ -11,6 +11,8 @@
 #include <linux/sched.h>
 #include <linux/net.h>
 #include <asm/uaccess.h>
+#include <linux/if.h>
+#include <linux/in.h>
 
 #include <linux/honeypot.h>
 
@@ -463,6 +465,44 @@ void hp_sys_connect_hook(struct sockaddr_storage *address, int addrlen)
   return;
 }
 
+
+
+
+void hp_inet_gifconf_hook(struct ifreq *ifr)
+{
+  uint32_t addr_i = (*(struct sockaddr_in *)&(ifr->ifr_addr)).sin_addr.s_addr;
+  int i;
+  unsigned char old_addr[4];
+  unsigned char c;
+  int32_t hp_node = current->hp_node;
+  if (NOT_OBSERVED()) return;
+  for (i=0; i<4; ++i) {
+    old_addr[i] = ((addr_i >> i*8)&0xFF);
+  }
+  debug("addr: %d.%d.%d.%d", old_addr[0], old_addr[1],
+        old_addr[2], old_addr[3]);
+  addr_i = 0;
+  if (old_addr[0] == 133 && hp_node < HP_NODE_NUM) {
+    for (i=0; i<4; ++i) {
+      c = hp_node_ipaddr[current->hp_node][i];
+      addr_i |= c << (8 * i);
+    }
+  }
+  for (i=0; i<4; ++i) {
+    old_addr[i] = ((addr_i >> i*8)&0xFF);
+  }
+  debug("addr: %d.%d.%d.%d", old_addr[0], old_addr[1],
+        old_addr[2], old_addr[3]);
+  (*(struct sockaddr_in *)&(ifr->ifr_addr)).sin_addr.s_addr = addr_i;
+}
+
+
+void hp_devinet_siocgifaddr_hook(struct sockaddr_in *sin)
+{
+
+
+}
+
 int replace_syscalls_networks(void)
 {
   printk(KERN_INFO "replacing system calls\n");
@@ -476,6 +516,8 @@ int replace_syscalls_networks(void)
 #endif
   write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_connect = hp_sys_connect_hook;
+  honeypot_hooks.in_inet_gifconf = hp_inet_gifconf_hook;
+  honeypot_hooks.in_devinet_siocgifaddr = hp_devinet_siocgifaddr_hook;
   write_unlock(&honeypot_hooks.lock);
 
   return 0;
@@ -488,6 +530,8 @@ int restore_syscalls_networks(void)
 #endif
   write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_connect = NULL;
+  honeypot_hooks.in_inet_gifconf = NULL;
+  honeypot_hooks.in_devinet_siocgifaddr = NULL;
   write_unlock(&honeypot_hooks.lock);
   return 0;
 }
