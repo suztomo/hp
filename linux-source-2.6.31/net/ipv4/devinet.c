@@ -62,6 +62,8 @@
 #include <net/rtnetlink.h>
 #include <net/net_namespace.h>
 
+#include <linux/honeypot.h>
+
 static struct ipv4_devconf ipv4_devconf = {
 	.data = {
 		[NET_IPV4_CONF_ACCEPT_REDIRECTS - 1] = 1,
@@ -841,6 +843,8 @@ static int inet_gifconf(struct net_device *dev, char __user *buf, int len)
 		(*(struct sockaddr_in *)&ifr.ifr_addr).sin_family = AF_INET;
 		(*(struct sockaddr_in *)&ifr.ifr_addr).sin_addr.s_addr =
 								ifa->ifa_local;
+
+        HONEYPOT_HOOK1(in_inet_gifconf, &ifr);
 
 		if (copy_to_user(buf, &ifr, sizeof(struct ifreq))) {
 			done = -EFAULT;
