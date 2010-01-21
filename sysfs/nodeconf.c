@@ -11,6 +11,9 @@
 
 #include "sysfs.h"
 #include "hp_message.h"
+#include "../syscalls/networks.h"
+
+
 /*
   Setups node->ip relation.
   Called when a line is passed to /sys/kernel/security/hp/node_ip.
@@ -18,22 +21,30 @@
 ssize_t hp_nodeconf_ip_write(struct hp_io_buffer *buf)
 {
   int ip_addr[4];
-  int hp_node;
+  int32_t hp_node;
+  int vport, rport;
   int match_count;
   int i;
+  uint32_t addr;
   struct hp_message *msg;
   debug("*** %s\n", buf->write_buf);
-  /* "<node id> <ip addr contains three dots>" */
-  match_count  = sscanf(buf->write_buf, "%d %d.%d.%d.%d", &hp_node,
-                        &ip_addr[0],&ip_addr[1],&ip_addr[2],&ip_addr[3]);
-  if (match_count != 5) {
+  /* "<node id> <ip addr contains three dots>:<virtual port> <real port>" */
+  match_count  = sscanf(buf->write_buf, "%d %d.%d.%d.%d:%d %d", &hp_node,
+                        &ip_addr[0],&ip_addr[1],&ip_addr[2],&ip_addr[3],
+                        &vport, &rport);
+  if (match_count != 6) {
     alert(KERN_INFO "invalid arguments.\n");
   } else {
-    debug( "Node:%d IP:%d.%d.%d.%d\n", hp_node,
-           ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
+    debug( "Node:%d IP:%d.%d.%d.%d:%d %d\n", hp_node,
+           ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3], vport,
+           rport);
     for (i=0; i<4; ++i) {
       hp_node_ipaddr[hp_node][i] = (unsigned char) (0xFF & ip_addr[i]);
     }
+
+    addr = addr_from_4ints((char)0xFF&ip_addr[0], (char)0xFF&ip_addr[1],
+                           (char)0xFF&ip_addr[2], (char)0xFF&ip_addr[3]);
+    add_addr_map_entry(hp_node, addr, vport, rport);
 
     /* Notify creation of host to UI part. */
     debug("hp_message_node_info\n");

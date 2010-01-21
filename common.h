@@ -18,6 +18,7 @@ void hp_free(void *p);
 extern unsigned char hp_node_ipaddr[HP_NODE_NUM+1][4];
 extern int hp_node_port[HP_NODE_NUM+1];
 
+
 #define IS_OBSERVED() ((current)->hp_node >= 0)
 #define NOT_OBSERVED() (!IS_OBSERVED())
 

@@ -17,6 +17,7 @@
 #include <linux/honeypot.h>
 
 #include "syscalls.h"
+#include "networks.h"
 #include "../common.h"
 #include "../sysfs/hp_message.h"
 
@@ -38,8 +39,6 @@ asmlinkage long (*original_sys_socketcall) (int call, unsigned long *args);
 asmlinkage long (*original_sys_connect) (int fd, struct sockaddr __user * uservaddr,
                                          int addrlen);
 asmlinkage long (*original_sys_newuname) (struct new_utsname __user *name);
-
-
 
 /*
 asmlinkage long (*original_sys_socketcall) (int call, unsigned long *args);
@@ -543,8 +542,113 @@ int replace_syscalls_networks(void)
   honeypot_hooks.in_devinet_siocgifaddr = hp_devinet_siocgifaddr_hook;
   write_unlock(&honeypot_hooks.lock);
 
+
   return 0;
 }
+
+struct addr_map_t addr_map;
+uint32_t addr_map_localhost;
+
+uint32_t addr_from_4ints(unsigned char a, unsigned  char b,
+                         unsigned char c, unsigned  char d)
+{
+  return ((uint32_t)d)<<24 | ((uint32_t)c)<<16
+    | ((uint32_t)b)<<8 | ((uint32_t)a);
+}
+
+
+struct addr_map_entry *addr_map_entry_create(int32_t hp_node, uint32_t addr,
+                                             uint16_t vport, uint16_t rport)
+{
+  struct addr_map_entry *p = hp_alloc(sizeof(struct addr_map_entry));
+  p->hp_node = hp_node;
+  p->addr = addr;
+  p->vport = vport;
+  p->rport = rport;
+  return p;
+}
+
+void add_addr_map_entry(int32_t hp_node, uint32_t addr,
+                        uint16_t vport, uint16_t rport)
+{
+  struct addr_map_entry *ame = addr_map_entry_create(hp_node,addr,
+                                                     vport, rport);
+  BUG_ON(hp_node < 0 || hp_node > HP_NODE_NUM);
+  write_lock(&addr_map.lock);
+  addr_map.c[addr_map.size] = ame;
+  addr_map.size++;
+  write_unlock(&addr_map.lock);
+}
+
+int init_addr_map(void)
+{
+  uint32_t addr;
+  rwlock_init(&addr_map.lock);
+  write_lock(&addr_map.lock);
+  addr_map.size = 0;
+  addr = addr_map_localhost = addr_from_4ints(127, 0, 0, 1);
+  debug("address: %d.%d.%d.%d",
+        addr & 0xFF,
+        (addr << 8) & 0xFF,
+        (addr << 16) & 0xFF,
+        (addr << 24) & 0xFF);
+  write_unlock(&addr_map.lock);
+
+  return 0;
+}
+
+void addr_map_entry_delete(struct addr_map_entry* ame)
+{
+  hp_free(ame);
+}
+
+
+struct addr_map_entry *addr_map_entry_from_addr_port(uint32_t addr,
+                                                     uint16_t vport)
+{
+  int i;
+  read_lock(&addr_map.lock);
+  for (i=0; i<addr_map.size; ++i) {
+    if (addr_map.c[i]->addr == addr && addr_map.c[i]->vport == vport) {
+      read_unlock(&addr_map.lock);
+      return addr_map.c[i];
+    }
+  }
+  read_unlock(&addr_map.lock);
+  return NULL;
+}
+
+struct addr_map_entry *addr_map_entry_from_node_port(int32_t hp_node,
+                                                     uint16_t vport)
+{
+  int i;
+  read_lock(&addr_map.lock);
+  for (i=0; i<addr_map.size; ++i) {
+    if (addr_map.c[i]->hp_node == hp_node && addr_map.c[i]->vport == vport) {
+      read_unlock(&addr_map.lock);
+      return addr_map.c[i];
+    }
+  }
+  read_unlock(&addr_map.lock);
+  return NULL;
+}
+
+int finalize_addr_map(void)
+{
+  int i;
+  write_lock(&addr_map.lock);
+  for (i=0; i<addr_map.size; ++i) {
+    if (addr_map.c[i] == NULL) {
+      BUG_ON(addr_map.c[i] == NULL);
+      write_unlock(&addr_map.lock);
+      return 1;
+    }
+    addr_map_entry_delete(addr_map.c[i]);
+  }
+  write_unlock(&addr_map.lock);
+  return 0;
+}
+
 
 int restore_syscalls_networks(void)
 {
@@ -621,3 +725,4 @@ static void print_call_name(int call)
   printk(KERN_INFO "*** socketcall[%d:%s] by %s\n",
          call, call_func_name, current->comm);
 }
+

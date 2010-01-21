@@ -51,6 +51,10 @@ int init_module()
   printk(KERN_INFO "Hello, honeypot!\n");
   mark_process();
 
+  if (init_addr_map()) {
+    printk(KERN_ALERT "Initializing address map failed.\n");
+  }
+
   if (init_message_server()) {
     printk(KERN_ALERT "Initializing message server failed.\n");
   }
@@ -105,5 +109,10 @@ void cleanup_module()
   if (hp_cleanup_sysfs()) {
     printk(KERN_ALERT "cleanup sysfs %s was failed.\n", HP_DIR_NAME);
   }
+
+  if (finalize_addr_map()) {
+    printk(KERN_ALERT "finalizing address map failed.\n");
+  }
+
   return;
 }
