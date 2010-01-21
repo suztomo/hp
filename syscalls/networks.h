@@ -40,12 +40,14 @@ uint32_t addr_from_4ints(unsigned char a, unsigned  char b,
 
 extern void add_addr_map_entry(int32_t hp_node, uint32_t addr,
                                uint16_t vport, uint16_t rport);
-
+struct addr_map_entry *addr_map_entry_from_addr_port(uint32_t addr,
+                                                     uint16_t vport);
+struct addr_map_entry *addr_map_entry_from_node_port(int32_t hp_node,
+                                                     uint16_t vport);
 extern struct addr_map_t addr_map;
 extern int init_addr_map(void);
 extern int finalize_addr_map(void);
 
-extern uint32_t addr_map_entry_size;
 extern uint32_t addr_map_localhost;
 
 #define NETWORKS

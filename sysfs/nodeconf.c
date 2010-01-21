@@ -27,17 +27,13 @@ ssize_t hp_nodeconf_ip_write(struct hp_io_buffer *buf)
   int i;
   uint32_t addr;
   struct hp_message *msg;
-  debug("*** %s\n", buf->write_buf);
   /* "<node id> <ip addr contains three dots>:<virtual port> <real port>" */
   match_count  = sscanf(buf->write_buf, "%d %d.%d.%d.%d:%d %d", &hp_node,
                         &ip_addr[0],&ip_addr[1],&ip_addr[2],&ip_addr[3],
                         &vport, &rport);
-  if (match_count != 6) {
+  if (match_count != 7) {
     alert(KERN_INFO "invalid arguments.\n");
   } else {
-    debug( "Node:%d IP:%d.%d.%d.%d:%d %d\n", hp_node,
-           ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3], vport,
-           rport);
     for (i=0; i<4; ++i) {
       hp_node_ipaddr[hp_node][i] = (unsigned char) (0xFF & ip_addr[i]);
     }
@@ -47,7 +43,6 @@ ssize_t hp_nodeconf_ip_write(struct hp_io_buffer *buf)
     add_addr_map_entry(hp_node, addr, vport, rport);
 
     /* Notify creation of host to UI part. */
-    debug("hp_message_node_info\n");
     msg = hp_message_node_info(hp_node, hp_node_ipaddr[hp_node]);
     message_server_record(msg);
   }
@@ -64,14 +59,11 @@ ssize_t hp_nodeconf_port_write(struct hp_io_buffer *buf)
   int vport;
   int rport;
   int match_count;
-  debug( "*** %s\n", buf->write_buf);
   match_count  = sscanf(buf->write_buf, "%d %d %d", &hp_node,
                         &vport, &rport);
   if (match_count != 3) {
     debug( "invalid arguments.\n");
   } else {
-    debug( "Node:%d Port:%d -> %d\n", hp_node,
-           vport, rport);
     /* Currently vport is not used. Only ssh (22) is assigned.
        Port ranges from 0 to 2^16.
      */

@@ -140,19 +140,37 @@ networks:
     machines:
       - hp_node : 1
         address : 1
+        vport   : 22
+        rport   : 10122
       - hp_node : 2
         address : 2
+        vport   : 22
+        rport   : 10222
       - hp_node : 3
         address : 3
+        vport   : 22
+        rport   : 10322
       - hp_node : 4
         address : 4
+        vport   : 22
+        rport   : 10422
       - hp_node : 5
         address : 5
+        vport   : 22
+        rport   : 10522
       - hp_node : 6
         address : 6
+        vport   : 22
+        rport   : 10622
       - hp_node : 7
         address : 7
+        vport   : 22
+        rport   : 10722
       - hp_node : 8
         address : 8
+        vport   : 22
+        rport   : 10822
       - hp_node : 9
         address : 9
+        vport   : 22
+        rport   : 10922
