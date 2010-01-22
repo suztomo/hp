@@ -75,7 +75,10 @@ static int hp_open_control(int type, struct file *file)
     buf->write = hp_nodeconf_port_write;
     hp_nodeconf_port_setup_readbuf(buf);
     break;
-
+  case HP_DENTRY_KEY_NODECONF_SELFCONF:
+    buf->write = hp_nodeconf_selfconf;
+    hp_nodeconf_port_setup_readbuf(buf);
+    break;
   case HP_DENTRY_KEY_TTY_OUTPUT_ALL:
     buf->write = NULL;
     //    hp_tty_output_all_setup_readbuf(buf);
@@ -159,8 +162,6 @@ static int hp_release_control(struct inode *inode, struct file *file)
   }
   hp_free(buf);
   file->private_data = NULL;
-  debug("releasing");
-
   return 0;
 }
 
@@ -271,6 +272,8 @@ static int hp_init_interfaces(void)
   }
   hp_create_entry("node_ip",   0666, hp_root, HP_DENTRY_KEY_NODECONF_IP);
   hp_create_entry("node_port", 0666, hp_root, HP_DENTRY_KEY_NODECONF_PORT);
+  hp_create_entry("selfconf",  0666, hp_root, HP_DENTRY_KEY_NODECONF_SELFCONF);
+
   /*
     tty output is transmitted via hp/tty_output/all
   hp_create_entry("tty_output_setup", 0444, hp_root,

@@ -6,20 +6,21 @@
 
 #ifndef HP_SYSFS
 
-#define HP_DIR_NAME "hp"
-#define HP_DENTRY_NUM 12
-#define HP_DENTRY_KEY_ROOT             0 /* hp/ */
-#define HP_DENTRY_KEY_NODECONF_IP      1 /* hp/nodeconf_ip */
-#define HP_DENTRY_KEY_NODECONF_PORT    2 /* hp/nodeconf_port */
-#define HP_DENTRY_KEY_TTY_OUTPUT       3 /* hp/tty_output */
-#define HP_DENTRY_KEY_TTY_OUTPUT_SETUP 4 /* hp/tty_output_setup */
-#define HP_DENTRY_KEY_TTY_OUTPUT_ALL   5 /* hp/tty_output/all */
+#define HP_DIR_NAME                     "hp"
+#define HP_DENTRY_NUM                   12
+#define HP_DENTRY_KEY_ROOT              0 /* hp/ */
+#define HP_DENTRY_KEY_NODECONF_IP       1 /* hp/nodeconf_ip */
+#define HP_DENTRY_KEY_NODECONF_PORT     2 /* hp/nodeconf_port */
+#define HP_DENTRY_KEY_NODECONF_SELFCONF 3 /* hp/selfconf */
+#define HP_DENTRY_KEY_TTY_OUTPUT        4 /* hp/tty_output */
+#define HP_DENTRY_KEY_TTY_OUTPUT_SETUP  5 /* hp/tty_output_setup */
+#define HP_DENTRY_KEY_TTY_OUTPUT_ALL    6 /* hp/tty_output/all */
 
 /*
   The two below are not entries in hp_dentries[].
  */
-#define HP_DENTRY_KEY_TTY_OUTPUT_NODE     6 /* hp/tty_output/<node num>/ */
-#define HP_DENTRY_KEY_TTY_OUTPUT_NODE_TTY 7 /* hp/tty_output/<node num>/pts5 */
+#define HP_DENTRY_KEY_TTY_OUTPUT_NODE     7 /* hp/tty_output/<node num>/ */
+#define HP_DENTRY_KEY_TTY_OUTPUT_NODE_TTY 8 /* hp/tty_output/<node num>/pts5 */
 
 
 
@@ -102,6 +103,7 @@ ssize_t hp_write(struct file *file, const char __user *buf,
 ssize_t hp_nodeconf_ip_write(struct hp_io_buffer *buf);
 void hp_nodeconf_ip_setup_readbuf(struct hp_io_buffer *io_buf);
 ssize_t hp_nodeconf_port_write(struct hp_io_buffer *buf);
+ssize_t hp_nodeconf_selfconf(struct hp_io_buffer *buf);
 void hp_nodeconf_port_setup_readbuf(struct hp_io_buffer *io_buf);
 void hp_tty_output_all_setup_readbuf(struct hp_io_buffer *io_buf);
 ssize_t hp_tty_output_all_read(struct hp_io_buffer *io_buf,
