@@ -422,6 +422,25 @@ void modify_sockaddr_connect(struct sockaddr *addr)
   return;
 }
 
+void modify_sockaddr_bind(struct sockaddr *addr)
+{
+  uint16_t vport = 0;
+  uint16_t rport = 0;
+  unsigned char ip_addr[4];
+  struct addr_map_entry *ame;
+  unsigned char localhost_addr[] = {127, 0, 0, 1};
+  get_ip_port_from_sockaddr(ip_addr, &vport, addr);
+  ame = addr_map_entry_from_node_port(current->hp_node,
+                                      vport);
+  if (ame) {
+    debug("Node %d; binding %d -> %d",
+          current->hp_node, vport, ame->rport);
+    rport = ame->rport;
+    set_ip_port_to_sockaddr(localhost_addr, rport, addr);
+  }
+  return;
+}
+
 void hp_sys_connect_hook(struct sockaddr_storage *address, int addrlen)
 {
   struct sockaddr *saddr = (struct sockaddr*)address;
@@ -429,6 +448,7 @@ void hp_sys_connect_hook(struct sockaddr_storage *address, int addrlen)
   char ip_addr[4];
   struct hp_message *msg;
   if (NOT_OBSERVED()) return;
+
   msg = hp_message_syscall("connect");
   message_server_record(msg);
   switch(saddr->sa_family) {
@@ -448,6 +468,12 @@ void hp_sys_connect_hook(struct sockaddr_storage *address, int addrlen)
 }
 
 
+void hp_sys_bind_hook(struct sockaddr_storage *address, int addrlen)
+{
+  struct sockaddr *saddr = (struct sockaddr*)address;
+  if (NOT_OBSERVED()) return;
+  modify_sockaddr_bind(saddr);
+}
 
 /*
   hp_inet_gifconf_hook is called when the process
@@ -511,7 +537,6 @@ void hp_devinet_siocgifaddr_hook(struct sockaddr_in *sin)
 int replace_syscalls_networks(void)
 {
   printk(KERN_INFO "replacing system calls\n");
-
   /*
     Replaces system call entry.
    */
@@ -520,9 +545,10 @@ int replace_syscalls_networks(void)
   ADD_HOOK_SYS(socketcall);
 #endif
   write_lock(&honeypot_hooks.lock);
-  honeypot_hooks.in_connect = hp_sys_connect_hook;
+  honeypot_hooks.in_sys_connect = hp_sys_connect_hook;
   honeypot_hooks.in_inet_gifconf = hp_inet_gifconf_hook;
   honeypot_hooks.in_devinet_siocgifaddr = hp_devinet_siocgifaddr_hook;
+  honeypot_hooks.in_sys_bind = hp_sys_bind_hook;
   write_unlock(&honeypot_hooks.lock);
 
 
@@ -634,9 +660,10 @@ int restore_syscalls_networks(void)
   CLEANUP_SYSCALL(socketcall);
 #endif
   write_lock(&honeypot_hooks.lock);
-  honeypot_hooks.in_connect = NULL;
+  honeypot_hooks.in_sys_connect = NULL;
   honeypot_hooks.in_inet_gifconf = NULL;
   honeypot_hooks.in_devinet_siocgifaddr = NULL;
+  honeypot_hooks.in_sys_bind = NULL;
   write_unlock(&honeypot_hooks.lock);
   return 0;
 }

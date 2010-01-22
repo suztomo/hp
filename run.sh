@@ -4,10 +4,12 @@ SSHD_PORT_TO=11022
 SSHD_PORT_SKIP=100
 pkill sshd
 make install
-cd $HOME/hp/utils/create_networks; python create_networks.py
-$HOME/hp/utils/run_sshd.sh $SSHD_PORT_FROM $SSHD_PORT_TO $SSHD_PORT_SKIP
-cd $HOME/hp/utils/mark_proc; make;./run.sh
-cd $HOME/hp
+#cd $HOME/hp/utils/create_networks; python create_networks.py
+utils/create_networks/create_networks.py utils/structure.yaml
+#$HOME/hp/utils/run_sshd.sh $SSHD_PORT_FROM $SSHD_PORT_TO $SSHD_PORT_SKIP
+#cd $HOME/hp/utils/mark_proc; make;./run.sh
+#cd $HOME/hp
+
 
 # twistd requires two-times pkill(?)
 trap 'echo; echo "end"; pkill twistd;pkill twistd;pkill sshd; \

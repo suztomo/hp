@@ -1417,6 +1417,9 @@ SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
 	sock = sockfd_lookup_light(fd, &err, &fput_needed);
 	if (sock) {
 		err = move_addr_to_kernel(umyaddr, addrlen, (struct sockaddr *)&address);
+
+        HONEYPOT_HOOK2(in_sys_bind, &address, addrlen);
+
 		if (err >= 0) {
 			err = security_socket_bind(sock,
 						   (struct sockaddr *)&address,
@@ -1584,11 +1587,7 @@ SYSCALL_DEFINE3(connect, int, fd, struct sockaddr __user *, uservaddr,
 	if (err < 0)
 		goto out_put;
 
-    read_lock(&honeypot_hooks.lock);
-    if (honeypot_hooks.in_connect) {
-      honeypot_hooks.in_connect(&address, addrlen);
-    }
-    read_unlock(&honeypot_hooks.lock);
+    HONEYPOT_HOOK2(in_sys_connect, &address, addrlen);
 
 	err =
 	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);

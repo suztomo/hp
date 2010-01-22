@@ -133,6 +133,9 @@ home_dirs:
     mitou:
       host99: ~
 
+variables:
+  SSHD_DIR1: "/usr/src/openssh"
+
 networks:
   vnet1:
     netmask: 255.255.255.0
@@ -140,37 +143,56 @@ networks:
     machines:
       - hp_node : 1
         address : 1
-        vport   : 22
-        rport   : 10122
+        daemons :
+          - "$SSHD_DIR1/sshd -f ${SSHD_DIR1}/sshd_config"
+        ports   :
+          22 : 10122
+          80 : 10180
       - hp_node : 2
         address : 2
-        vport   : 22
-        rport   : 10222
+        daemons :
+          - "$SSHD_DIR1/sshd -f ${SSHD_DIR1}/sshd_config"
+        ports   :
+          22 : 10222
+          80 : 10280
+          6667 : 10877
       - hp_node : 3
         address : 3
-        vport   : 22
-        rport   : 10322
+        daemons :
+          - "$SSHD_DIR1/sshd -f ${SSHD_DIR1}/sshd_config"
+        ports   :
+          22 : 10322
+          80 : 10380
+          6667 : 10377
       - hp_node : 4
         address : 4
-        vport   : 22
-        rport   : 10422
+        daemons :
+          - "$SSHD_DIR1/sshd -f ${SSHD_DIR1}/sshd_config"
+        ports   :
+          22 : 10422
+          80 : 10480
+          6667 : 10477
       - hp_node : 5
         address : 5
-        vport   : 22
-        rport   : 10522
+        daemons :
+          - "$SSHD_DIR1/sshd -f ${SSHD_DIR1}/sshd_config"
+        ports   :
+          22 : 10522
+          80 : 10580
+          6667 : 10577
       - hp_node : 6
         address : 6
-        vport   : 22
-        rport   : 10622
+        daemons :
+          - "$SSHD_DIR1/sshd -f ${SSHD_DIR1}/sshd_config"
+        ports   :
+          22 : 10622
+          80 : 10680
+          6667 : 10677
       - hp_node : 7
         address : 7
-        vport   : 22
-        rport   : 10722
-      - hp_node : 8
-        address : 8
-        vport   : 22
-        rport   : 10822
-      - hp_node : 9
-        address : 9
-        vport   : 22
-        rport   : 10922
+        daemons :
+          - "$SSHD_DIR1/sshd -f ${SSHD_DIR1}/sshd_config"
+        ports   :
+          22 : 10722
+
+

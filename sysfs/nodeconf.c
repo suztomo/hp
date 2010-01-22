@@ -46,7 +46,6 @@ ssize_t hp_nodeconf_ip_write(struct hp_io_buffer *buf)
     msg = hp_message_node_info(hp_node, hp_node_ipaddr[hp_node]);
     message_server_record(msg);
   }
-  debug("buf->writebuf_size : %d", buf->writebuf_size);
   return buf->writebuf_size;
 }
 
@@ -133,7 +132,6 @@ ssize_t hp_nodeconf_selfconf(struct hp_io_buffer *buf)
   if (match_count != 1) {
     alert(KERN_INFO "invalid arguments.\n");
   } else {
-    debug("marking %d as %d", current->pid, hp_node);
     if (hp_node >= 0 && hp_node < HP_NODE_NUM) {
       current->hp_node = hp_node;
     }
