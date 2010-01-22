@@ -58,6 +58,38 @@ def run_daemons(hp_node, daemons):
         args = ds[1:]
         run_command_in_node(hp_node, cmd, args)
 
+def check_machines_consistency(machines):
+    for m1 in machines:
+        if (not 'hp_node' in m1
+            or not 'address' in m1):
+            error("machine must have hp_node and address")
+            print(m1)
+            return False
+    rport_owned = {}
+    for m1 in machines:
+        for m2 in machines:
+            if (m1 == m2):
+                continue
+            if (m1['hp_node'] == m2['hp_node']):
+                error("hp_node is not unique\n")
+                print(m1)
+                print(m2)
+                return False
+            if (m1['address'] == m2['address']):
+                error("Address is not unique\n")
+                print(m1)
+                print(m2)
+                return False
+        if 'ports' in m1:
+            pdict = m1['ports']
+            for k in pdict:
+                if pdict[k] in rport_owned:
+                    error("real port is already chosen\n")
+                    return False
+                rport_owned[pdict[k]] = 1
+    return True
+                
+
 def create_network(network_info, vars):
     netmask = map(int, network_info['netmask'].split('.'))
     ip_addr_base = map(int, network_info['network'].split('.'))
@@ -65,6 +97,13 @@ def create_network(network_info, vars):
         error("invalid configuration.")
         error(network_info)
         exit()
+
+    if (check_machines_consistency(network_info['machines'])):
+        if verbose:
+            print("  structure consistency check: OK\n")
+    else:
+        error("  structure consistency check: NG\n")
+        sys.exit(1)
     for machine in network_info['machines']:
         if ((not 'hp_node' in machine)
             or (not 'address' in machine)):
