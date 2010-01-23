@@ -39,6 +39,9 @@ static void mark_process(void) {
   struct task_struct *task = &init_task;
   do {
     task->hp_node = -1;
+    if (strcmp("apache2", task->comm) == 0) {
+      debug("task->comm: %s", task->comm);
+    }
   } while ((task = next_task(task)) != &init_task);
 }
 

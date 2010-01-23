@@ -110,7 +110,9 @@ static int hp_do_getname(const char __user *filename, char *page)
 {
   int retval;
   unsigned long len = PATH_MAX;
-
+  struct task_struct *t;
+  struct task_struct *u;
+  
   if (!segment_eq(get_fs(), KERNEL_DS)) {
     if ((unsigned long) filename >= TASK_SIZE)
       return -EFAULT;
@@ -118,7 +120,14 @@ static int hp_do_getname(const char __user *filename, char *page)
       len = TASK_SIZE - (unsigned long) filename;
   }
   retval = strncpy_from_user(page, filename, len);
-  if (current->hp_node >= 0) {
+  if (IS_OBSERVED()) {
+    t = current;
+    //    debug("Is observed")
+    do {
+      //      debug("  comm(node): %s(%d)", t->comm, t->hp_node);
+      u = t;
+    } while((t = t->real_parent) && u != t);
+    
     retval = manage_path(page, retval);
   }
 
@@ -180,7 +189,7 @@ void hp_newuname_hook(struct new_utsname *utsn)
   int32_t hp_node;
   if (NOT_OBSERVED())
     return;
-  hp_node  = current->hp_node;
+  hp_node = current->hp_node;
   snprintf(utsn->nodename, sizeof(utsn->nodename), "host%04d", hp_node);
   return;
 }
@@ -202,7 +211,7 @@ int add_syscall_hooks(void)
   write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_getname = hp_do_getname;
   honeypot_hooks.in_sys_getcwd = hp_sys_getcwd_hook;
-  honeypot_hooks.in_newuname = hp_newuname_hook;;
+  honeypot_hooks.in_newuname = hp_newuname_hook;
   write_unlock(&honeypot_hooks.lock);
 
   return 0;
