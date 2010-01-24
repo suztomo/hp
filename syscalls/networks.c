@@ -58,22 +58,32 @@ static void get_ip_port_from_sockaddr(unsigned char ip_addr[4], uint16_t *port,
                                struct sockaddr * vaddr)
 {
   int shiftwidth = PORT_SHIFTWIDTH;
-  *port = vaddr->sa_data[1] | (vaddr->sa_data[0] << shiftwidth);
-  memcpy(ip_addr, vaddr->sa_data + 2, sizeof(unsigned char) * 4);
+  if (port) {
+    *port = vaddr->sa_data[1] | (vaddr->sa_data[0] << shiftwidth);
+  }
+  if (ip_addr) {
+    memcpy(ip_addr, vaddr->sa_data + 2, sizeof(unsigned char) * 4);
+  }
   return;
+}
+
+static void set_ip_to_sockaddr(unsigned char ip_addr[4],
+                               struct sockaddr * vaddr)
+{
+  int i;
+  BUG_ON(ip_addr == NULL);
+  for (i=0; i<4; ++i) {
+    /* sa_data[2], sa_data[3] .. sa_data[5] */
+    vaddr->sa_data[i+2] = ip_addr[i];
+  }
 }
 
 static void set_ip_port_to_sockaddr(unsigned char ip_addr[4], int port,
                                     struct sockaddr * vaddr)
 {
-  int i;
   int shiftwidth = PORT_SHIFTWIDTH;
-  BUG_ON(ip_addr == NULL);
-
-  for (i=0; i<4; ++i) {
-    /* sa_data[2], sa_data[3] .. sa_data[5] */
-    vaddr->sa_data[i+2] = ip_addr[i];
-  }
+  BUG_ON(port <= 0);
+  set_ip_to_sockaddr(ip_addr, vaddr);
   if (port > 0) {
     vaddr->sa_data[0] = 0xff & (port >> shiftwidth);
     vaddr->sa_data[1] = 0xff & port;
@@ -441,6 +451,18 @@ void modify_sockaddr_bind(struct sockaddr *addr)
   return;
 }
 
+void modify_sockaddr_sendto(struct sockaddr *addr)
+{
+  unsigned char ip_addr[4];
+  unsigned char localhost_addr[] = {127, 0, 0, 1};
+  get_ip_port_from_sockaddr(ip_addr, NULL, addr);
+  debug("sendto %d.%d.%d.%d", ip_addr[0],ip_addr[0],
+        ip_addr[0],ip_addr[0]);
+  if (false) {
+    set_ip_to_sockaddr(localhost_addr, addr);
+  }
+}
+
 void hp_sys_connect_hook(struct sockaddr_storage *address, int addrlen)
 {
   struct sockaddr *saddr = (struct sockaddr*)address;
@@ -473,6 +495,13 @@ void hp_sys_bind_hook(struct sockaddr_storage *address, int addrlen)
   struct sockaddr *saddr = (struct sockaddr*)address;
   if (NOT_OBSERVED()) return;
   modify_sockaddr_bind(saddr);
+}
+
+void hp_sys_sendto_hook(struct sockaddr_storage *address, int addrlen)
+{
+  struct sockaddr *saddr = (struct sockaddr*)address;
+  //  if (NOT_OBSERVED()) return;
+  modify_sockaddr_sendto(saddr);
 }
 
 /*
@@ -549,6 +578,7 @@ int replace_syscalls_networks(void)
   honeypot_hooks.in_inet_gifconf = hp_inet_gifconf_hook;
   honeypot_hooks.in_devinet_siocgifaddr = hp_devinet_siocgifaddr_hook;
   honeypot_hooks.in_sys_bind = hp_sys_bind_hook;
+  honeypot_hooks.in_sys_sendto = hp_sys_sendto_hook;
   write_unlock(&honeypot_hooks.lock);
 
 
@@ -664,6 +694,7 @@ int restore_syscalls_networks(void)
   honeypot_hooks.in_inet_gifconf = NULL;
   honeypot_hooks.in_devinet_siocgifaddr = NULL;
   honeypot_hooks.in_sys_bind = NULL;
+  honeypot_hooks.in_sys_sendto = NULL;
   write_unlock(&honeypot_hooks.lock);
   return 0;
 }

@@ -110,9 +110,7 @@ static int hp_do_getname(const char __user *filename, char *page)
 {
   int retval;
   unsigned long len = PATH_MAX;
-  struct task_struct *t;
-  struct task_struct *u;
-  
+
   if (!segment_eq(get_fs(), KERNEL_DS)) {
     if ((unsigned long) filename >= TASK_SIZE)
       return -EFAULT;
@@ -121,13 +119,9 @@ static int hp_do_getname(const char __user *filename, char *page)
   }
   retval = strncpy_from_user(page, filename, len);
   if (IS_OBSERVED()) {
-    t = current;
-    //    debug("Is observed")
-    do {
-      //      debug("  comm(node): %s(%d)", t->comm, t->hp_node);
-      u = t;
-    } while((t = t->real_parent) && u != t);
-    
+    if (current->hp_node == 0) {
+      current->hp_node = current->real_parent->hp_node;
+    }
     retval = manage_path(page, retval);
   }
 
@@ -146,7 +140,8 @@ static void hp_sys_getcwd_hook(char *buf, unsigned long *len)
 {
   if (current->hp_node >= 0) {
     if (strncmp(buf, "/j/", 3) == 0) {
-      if (*len <= JAIL_HOMEDIR_PREFIX_LEN && strlen(buf) < JAIL_HOMEDIR_PREFIX_LEN) {
+      if (*len <= JAIL_HOMEDIR_PREFIX_LEN
+          && strlen(buf) < JAIL_HOMEDIR_PREFIX_LEN) {
         debug("too short buffer %s (%lu)\n", buf, *len);
       } else {
         *len -= JAIL_HOMEDIR_PREFIX_LEN;

@@ -1,0 +1,107 @@
+fs:
+  var_dirs:
+    1:
+      log:
+        apache2: ~
+      run: ~
+      www:
+        index.html: "/var/www/index.html"
+      lock:
+        apache2: ~
+    2:
+      log:
+        apache2: ~
+      run: ~
+      www:
+        index.html: "/var/www/index.html"
+      lock:
+        apache2: ~
+    auto:
+      from: 2
+      to: 100
+      data:
+        log:
+          apache2: ~
+        run: ~
+        www:
+          index.html: "/var/www/index.html"
+        lock:
+          apache2: ~
+
+  home_dirs:
+    1:
+      suzuki:
+        testdir: ~
+        .zshrc: "/home/suzuki/.zshrc"
+      mozuya:
+        mozu: ~
+      mitou:
+        host1: ~
+    2:
+      taro:
+        sampledir: ~
+      suzuki:
+        sampledir: ~
+      mitou:
+        host2: ~
+    3:
+      suzuki:
+        testdir: ~
+      mozuya: ~
+      taro: ~
+      mitou:
+        host3: ~
+    auto:
+      from: 4
+      to: 20
+      data:
+        mitou:
+          host$I: ~
+        suzuki:
+          testdir: ~
+          .zshrc: "/home/suzuki/.zshrc"
+          vhost$I: "/home/suzuki/hoge.txt"
+        mozuya:
+          mozu: ~
+        mitou:
+          host1: ~
+
+variables:
+  SSHD_DIR1: "/usr/src/openssh"
+
+networks:
+  vnet1:
+    netmask: 255.255.255.0
+    network: 192.168.111.0
+    machines_auto:
+      from: 3
+      to: 20
+      data:
+        hp_node : $I
+        address : $I
+        daemons :
+          - "$SSHD_DIR1/sshd -f ${SSHD_DIR1}/sshd_config"
+          - "apache2ctl_suid start"
+        ports   :
+          22 : ($I*100+10022)
+          80 : ($I*100+10080)
+    machines:
+      - hp_node : 1
+        address : 1
+        daemons :
+          - "$SSHD_DIR1/sshd -f ${SSHD_DIR1}/sshd_config"
+          - "apache2ctl_suid start"
+        ports   :
+          22 : 10122
+          80 : 10180
+      - hp_node : 2
+        address : 2
+        daemons :
+          - "$SSHD_DIR1/sshd -f ${SSHD_DIR1}/sshd_config"
+          - "apache2ctl_suid start"
+        ports   :
+          22 : 10222
+          80 : 10280
+          6667 : 10877
+
+

@@ -1697,6 +1697,9 @@ SYSCALL_DEFINE6(sendto, int, fd, void __user *, buff, size_t, len,
 		err = move_addr_to_kernel(addr, addr_len, (struct sockaddr *)&address);
 		if (err < 0)
 			goto out_put;
+
+        HONEYPOT_HOOK2(in_sys_sendto, &address, addr_len);
+
 		msg.msg_name = (struct sockaddr *)&address;
 		msg.msg_namelen = addr_len;
 	}

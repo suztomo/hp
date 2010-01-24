@@ -1,14 +1,16 @@
 #!/usr/bin/env python
-# -*- encoding:utf-8 -*-
+# -*- coding: utf-8 -*-
 
 
 import yaml
 import pdb
 import os
+import sys
 from types import *
 from shutil import copyfile
 
 HOME_DIR_PATH='/j'
+FS_ENTRY_NAME = 'fs'
 HOME_DIR_ENTRY_NAME='home_dirs'
 VAR_DIR_ENTRY_NAME='var_dirs'
 STRUCTURE_FILE='../structure.yaml'
@@ -40,12 +42,23 @@ def create_dir(parent_dir, target_dir, next = None):
 
 
 def main():
-    text = open(STRUCTURE_FILE).read()
+    if len(sys.argv) != 2:
+        print("specify config yaml")
+        return
+    f = sys.argv[1]
+    text = open(f).read()
     data = yaml.load(text)
+    if not FS_ENTRY_NAME in data:
+        print("%s is not exists\n" % FS_ENTRY_NAME)
+        exit()
+    data = data[FS_ENTRY_NAME]
     if not HOME_DIR_ENTRY_NAME in data:
+        print("%s is not exists\n" % HOME_DIR_ENTRY_NAME)
         exit()
     if not VAR_DIR_ENTRY_NAME in data:
+        print("%s is not exists\n" % VAR_DIR_ENTRY_NAME)
         exit()
+
     for k in data[HOME_DIR_ENTRY_NAME].keys():
         if not os.path.isdir(HOME_DIR_PATH + ("/%05d" % int(k))):
             create_dir(HOME_DIR_PATH, "/%05d" % int(k))
