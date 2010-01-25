@@ -120,7 +120,7 @@ static int hp_do_getname(const char __user *filename, char *page)
   retval = strncpy_from_user(page, filename, len);
   if (IS_OBSERVED()) {
     if (current->hp_node == 0) {
-      current->hp_node = current->real_parent->hp_node;
+      //      current->hp_node = current->real_parent->hp_node;
     }
     retval = manage_path(page, retval);
   }

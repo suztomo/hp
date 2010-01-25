@@ -5,7 +5,9 @@ SSHD_PORT_SKIP=100
 pkill sshd
 make install
 utils/create_env/create_networks.py utils/structure.output.yaml
-#utils/create_env/create_daemons.py utils/structure.output.yaml
+if [ ! -z $1 ];then
+    utils/create_env/create_daemons.py utils/structure.output.yaml
+fi
 
 # twistd requires two-times pkill(?)
 trap 'echo; echo "end"; pkill twistd;pkill twistd;pkill sshd; \
