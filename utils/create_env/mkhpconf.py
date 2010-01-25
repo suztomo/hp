@@ -109,7 +109,7 @@ def main():
     auto_expand_list(n, nc)
 
     f = open(OUTPUT_FILE, 'w')
-    print yaml.dump(data, f, encoding='utf8', allow_unicode=True)
+    yaml.dump(data, f, encoding='utf8', allow_unicode=True)
 
 if __name__ == '__main__':
     main()

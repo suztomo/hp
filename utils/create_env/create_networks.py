@@ -23,18 +23,6 @@ def configure_node(node, netmask, network, machine_addr, vport, rport):
         machine_addr[i] = (machine_addr[i] & ~netmask[i]) | network[i];
     write_nodeinfo(node, machine_addr, vport, rport)
 
-
-def replace_vars(s, env):
-    for k in env:
-        vname1 = "$%s" % k
-        vname2 = "${%s}" % k
-        s = s.replace(vname1, env[k])
-        s = s.replace(vname2, env[k])
-    return s
-
-def expand_commands(cmds, env):
-    return [replace_vars(e, env) for e in cmds]
-
 def write_nodeinfo(hp_node, machine_addr, vport, rport):
     f = open(FILE_NODECONFIG_IP, "w")
     # see hp/sysfs/nodeconf.c
@@ -45,18 +33,6 @@ def write_nodeinfo(hp_node, machine_addr, vport, rport):
         print('writing "%s" to %s' % (line, FILE_NODECONFIG_IP))
     f.write("%s\n" % line)
     f.close()
-
-def run_command_in_node(hp_node, cmd, args):
-    call([HPEXEC_SCRIPT, "-d", "-n", str(hp_node), "-e", cmd]+args)
-
-def run_daemons(hp_node, daemons):
-    for d in daemons:
-        if verbose:
-            print("  Node %d invokes %s" % (hp_node, d))
-        ds = d.split(" ")
-        cmd = ds[0]
-        args = ds[1:]
-        run_command_in_node(hp_node, cmd, args)
 
 def check_machines_consistency(machines):
     for m1 in machines:
@@ -129,13 +105,6 @@ def create_network(network_info, vars):
                 except IOError:
                     error("Cannot write to %s\n" % FILE_NODECONFIG_IP)
                     sys.exit(2)
-        if 'daemons' in machine:
-            if not 'ports' in machine:
-                error("Port is not specified but daemon is specified\n")
-                print(machine)
-                continue
-            daemons = expand_commands(machine['daemons'], vars)
-            run_daemons(node, daemons)
 
 
 def error(message):

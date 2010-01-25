@@ -5,17 +5,11 @@ SSHD_PORT_SKIP=100
 pkill sshd
 make install
 utils/create_env/create_networks.py utils/structure.output.yaml
-#$HOME/hp/utils/run_sshd.sh $SSHD_PORT_FROM $SSHD_PORT_TO $SSHD_PORT_SKIP
-#cd $HOME/hp/utils/mark_proc; make;./run.sh
-#cd $HOME/hp
-
+#utils/create_env/create_daemons.py utils/structure.output.yaml
 
 # twistd requires two-times pkill(?)
 trap 'echo; echo "end"; pkill twistd;pkill twistd;pkill sshd; \
   $HOME/hp/experiments/apache2/kill_apache.sh; make uninstall; exit' 1 2 3 15
-#$HOME/hp/experiments/apache2/run_apache.sh $SSHD_PORT_FROM $SSHD_PORT_TO \
-#    $SSHD_PORT_SKIP
-echo "No apache run mode"
 cd $HOME/hp/utils/tty_server; twistd -y tty_server.py
 cd $HOME/hp
 while true; do
