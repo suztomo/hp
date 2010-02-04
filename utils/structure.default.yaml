@@ -75,13 +75,12 @@ networks:
     network: 192.168.111.0
     machines_auto:
       from: 3
-      to: 4
+      to: 300
       data:
         hp_node : $I
         address : $I
         daemons :
           - "$SSHD_DIR1/sshd -f ${SSHD_DIR1}/sshd_config"
-          - "apache2ctl_suid start"
         ports   :
           22 : ($I*100+10022)
           80 : ($I*100+10080)
@@ -90,7 +89,6 @@ networks:
         address : 1
         daemons :
           - "$SSHD_DIR1/sshd -f ${SSHD_DIR1}/sshd_config"
-          - "apache2ctl_suid start"
         ports   :
           22 : 10122
           80 : 10180
@@ -98,7 +96,7 @@ networks:
         address : 2
         daemons :
           - "$SSHD_DIR1/sshd -f ${SSHD_DIR1}/sshd_config"
-          - "apache2ctl_suid start"
+#          - "apache2ctl_suid start"
         ports   :
           22 : 10222
           80 : 10280

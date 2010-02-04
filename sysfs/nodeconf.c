@@ -21,6 +21,7 @@
 ssize_t hp_nodeconf_ip_write(struct hp_io_buffer *buf)
 {
   int ip_addr[4];
+  unsigned char ip_addrc[4];
   int32_t hp_node;
   int vport, rport;
   int match_count;
@@ -34,16 +35,20 @@ ssize_t hp_nodeconf_ip_write(struct hp_io_buffer *buf)
   if (match_count != 7) {
     alert(KERN_INFO "invalid arguments.\n");
   } else {
+
     for (i=0; i<4; ++i) {
       hp_node_ipaddr[hp_node][i] = (unsigned char) (0xFF & ip_addr[i]);
+      ip_addrc[i] = (unsigned char)(0xFF & ip_addr[i]);
     }
+
+
 
     addr = addr_from_4ints((char)0xFF&ip_addr[0], (char)0xFF&ip_addr[1],
                            (char)0xFF&ip_addr[2], (char)0xFF&ip_addr[3]);
     add_addr_map_entry(hp_node, addr, vport, rport);
 
     /* Notify creation of host to UI part. */
-    msg = hp_message_node_info(hp_node, hp_node_ipaddr[hp_node]);
+    msg = hp_message_node_info(hp_node, ip_addrc);
     message_server_record(msg);
   }
   return buf->writebuf_size;

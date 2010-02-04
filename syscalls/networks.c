@@ -255,6 +255,7 @@ int replace_syscalls_networks(void)
 }
 
 struct addr_map_t addr_map;
+struct gl_addr_map_t gl_addr_map;
 uint32_t addr_map_localhost;
 
 uint32_t addr_from_4ints(unsigned char a, unsigned  char b,
@@ -276,6 +277,16 @@ struct addr_map_entry *addr_map_entry_create(int32_t hp_node, uint32_t addr,
   return p;
 }
 
+
+struct gl_addr_map_entry *gl_addr_map_entry_create(int32_t hp_node)
+{
+  struct gl_addr_map_entry *p = hp_alloc(sizeof(struct gl_addr_map_entry));
+  p->hp_node = hp_node;
+  p->addr = 0; // unused yet
+  p->size = 0;
+  return p;
+}
+
 void add_addr_map_entry(int32_t hp_node, uint32_t addr,
                         uint16_t vport, uint16_t rport)
 {
@@ -286,6 +297,81 @@ void add_addr_map_entry(int32_t hp_node, uint32_t addr,
   addr_map.c[addr_map.size] = ame;
   addr_map.size++;
   write_unlock(&addr_map.lock);
+}
+
+struct gl_addr_map_entry * get_gl_addr_map_entry_from_node(int32_t hp_node)
+{
+  int i;
+  read_lock(&gl_addr_map.lock);
+  for (i=0; i<gl_addr_map.size; ++i) {
+    if (gl_addr_map.c[i]->hp_node == hp_node) {
+      read_unlock(&gl_addr_map.lock);
+      return gl_addr_map.c[i];
+    }
+  }
+  read_unlock(&gl_addr_map.lock);
+  return NULL;
+}
+
+
+struct port_map_entry* port_map_entry_create(uint16_t vport,
+                                             uint32_t raddr,
+                                             uint16_t rport)
+{
+  struct port_map_entry *p = hp_alloc(sizeof(struct port_map_entry));
+  p->vport = vport;
+  p->raddr = raddr; /* unused */
+  p->rport = rport;
+  return p;
+}
+
+void add_gl_addr_map_entry_portmap(int32_t hp_node,
+                                   uint16_t vport, uint16_t rport)
+{
+  struct gl_addr_map_entry* gle;
+  int i;
+  struct port_map_entry* pmap;
+  write_lock(&gl_addr_map.lock);
+  gle = get_gl_addr_map_entry_from_node(hp_node);
+  if (gle == NULL) {
+    debug("no such global addr map entry");
+    return;
+  }
+
+  if (gle->size >= GL_ADDR_MAP_ENTRY_NUM) {
+    /* too much port map in the entry (hp_node) */
+    debug("too much port map in the hp_node(%d)", hp_node);
+    return;
+  }
+
+  pmap = port_map_entry_create(vport, 0, rport);
+  if (pmap == NULL) {
+    debug("pmap creation failed");
+    return;
+  }
+  gle->maps[i] = pmap;
+  gle->size += 1;
+  write_unlock(&gl_addr_map.lock);
+  return;
+}
+
+void add_gl_addr_map_entry(int32_t hp_node)
+{
+  struct gl_addr_map_entry *gle = gl_addr_map_entry_create(hp_node);
+  write_lock(&gl_addr_map.lock);
+  gl_addr_map.c[gl_addr_map.size] = gle;
+  gl_addr_map.size++;
+  write_unlock(&gl_addr_map.lock);
+}
+
+int init_gl_addr_map(void)
+{
+  rwlock_init(&addr_map.lock);
+  rwlock_init(&gl_addr_map.lock);
+  write_lock(&gl_addr_map.lock);
+  gl_addr_map.size = 0;
+  write_unlock(&gl_addr_map.lock);
+  return 0;
 }
 
 int init_addr_map(void)
@@ -305,6 +391,20 @@ void addr_map_entry_delete(struct addr_map_entry* ame)
   hp_free(ame);
 }
 
+void gl_addr_map_entry_delete(struct gl_addr_map_entry* gle)
+{
+  int i;
+  struct port_map_entry *map;
+  for (i=0; i<gle->size; ++i) {
+    map = gle->maps[i];
+    if (map) {
+      hp_free(map);
+    } else {
+      debug("invalid maping entry");
+    }
+  }
+  hp_free(gle);
+}
 
 struct addr_map_entry *addr_map_entry_from_addr_port(uint32_t addr,
                                                      uint16_t vport)
@@ -334,6 +434,24 @@ struct addr_map_entry *addr_map_entry_from_node_port(int32_t hp_node,
   }
   read_unlock(&addr_map.lock);
   return NULL;
+}
+
+int finalize_gl_addr_map(void)
+{
+  int i;
+  struct gl_addr_map_entry *gle;
+  write_lock(&gl_addr_map.lock);
+  for (i=0; i<gl_addr_map.size; ++i) {
+    gle = gl_addr_map.c[i];
+    if (gle == NULL) {
+      BUG_ON(true);
+      write_unlock(&gl_addr_map.lock);
+      return 1;
+    }
+    gl_addr_map_entry_delete(gle);
+  }
+  write_unlock(&gl_addr_map.lock);
+  return 0;
 }
 
 int finalize_addr_map(void)

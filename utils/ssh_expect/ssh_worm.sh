@@ -18,6 +18,7 @@ if {[llength $argv] != 3} {
 set dictionary [lindex $argv 0]
 set file [lindex $argv 1]
 set user [lindex $argv 2]
+# already.txt should be in home directory, not worm/
 set already already.txt
 
 

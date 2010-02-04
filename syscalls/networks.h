@@ -24,11 +24,33 @@ struct addr_map_entry{
   uint16_t rport;
 };
 
+struct port_map_entry{
+  uint16_t vport;
+  uint32_t raddr; /* unused */
+  uint16_t rport;
+};
+
+#define GL_ADDR_MAP_ENTRY_NUM 5
+
+struct gl_addr_map_entry{
+  int32_t hp_node;
+  uint32_t addr; // 0 => unused
+  uint32_t size;
+  struct port_map_entry* maps[GL_ADDR_MAP_ENTRY_NUM];
+};
+
+struct gl_addr_map_t {
+  struct gl_addr_map_entry* c[HP_GL_NODE_NUM] ;
+  uint32_t size;
+  rwlock_t lock;
+};
+
 struct addr_map_t{
   struct addr_map_entry* c[HP_NODE_NUM];
   uint32_t size;
   rwlock_t lock;
 };
+
 
 /*
   Implementation is network.c
@@ -45,8 +67,11 @@ struct addr_map_entry *addr_map_entry_from_addr_port(uint32_t addr,
 struct addr_map_entry *addr_map_entry_from_node_port(int32_t hp_node,
                                                      uint16_t vport);
 extern struct addr_map_t addr_map;
+extern struct gl_addr_map_t gl_addr_map;
 extern int init_addr_map(void);
+extern int init_gl_addr_map(void);
 extern int finalize_addr_map(void);
+extern int finalize_gl_addr_map(void);
 
 extern uint32_t addr_map_localhost;
 

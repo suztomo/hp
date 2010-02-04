@@ -58,6 +58,10 @@ int init_module()
     printk(KERN_ALERT "Initializing address map failed.\n");
   }
 
+  if (init_gl_addr_map()) {
+    printk(KERN_ALERT "Initializing address map failed.\n");
+  }
+
   if (init_message_server()) {
     printk(KERN_ALERT "Initializing message server failed.\n");
   }

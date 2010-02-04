@@ -8,7 +8,8 @@
 void *hp_alloc(size_t size);
 void hp_free(void *p);
 
-#define HP_NODE_NUM 100
+#define HP_NODE_NUM 1000
+#define HP_GL_NODE_NUM 1000
 
 #define debug(...) { \
   printk(KERN_DEBUG __VA_ARGS__);\
