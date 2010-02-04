@@ -24,6 +24,9 @@
 
 #define PORT_SHIFTWIDTH 8
 
+#define GL_ADDR_MAP_ADDR_UNUSED 0
+#define GL_ADDR_MAP_PORT_UNUSED 0
+
 static void get_ip_port_from_sockaddr(unsigned char ip_addr[4], uint16_t *port,
                                struct sockaddr * vaddr)
 {
@@ -36,6 +39,8 @@ static void get_ip_port_from_sockaddr(unsigned char ip_addr[4], uint16_t *port,
   }
   return;
 }
+
+
 
 static void set_ip_to_sockaddr(unsigned char ip_addr[4],
                                struct sockaddr * vaddr)
@@ -60,6 +65,155 @@ static void set_ip_port_to_sockaddr(unsigned char ip_addr[4], int port,
   }
 }
 
+struct gl_addr_map_entry * get_gl_addr_map_entry_from_node(int32_t hp_node)
+{
+  int i;
+  struct gl_addr_map_entry *gle;
+  read_lock(&gl_addr_map.lock);
+  for (i=0; i<gl_addr_map.size; ++i) {
+    gle = gl_addr_map.c[i];
+    if (gle->hp_node == hp_node) {
+      read_unlock(&gl_addr_map.lock);
+      return gle;
+    }
+  }
+  read_unlock(&gl_addr_map.lock);
+  return NULL;
+}
+
+
+struct gl_addr_map_entry * get_gl_addr_map_unused_entry(void)
+{
+  int i;
+  struct gl_addr_map_entry *gle;
+  read_lock(&gl_addr_map.lock);
+  for (i=0; i<gl_addr_map.size; ++i) {
+    gle = gl_addr_map.c[i];
+    if (gle->addr == GL_ADDR_MAP_ADDR_UNUSED) {
+      read_unlock(&gl_addr_map.lock);
+      return gle;
+    }
+  }
+  read_unlock(&gl_addr_map.lock);
+  return NULL;
+}
+
+
+struct port_map_entry* port_map_entry_create(uint16_t vport,
+                                             uint32_t raddr,
+                                             uint16_t rport)
+{
+  struct port_map_entry *p = hp_alloc(sizeof(struct port_map_entry));
+  p->vport = vport;
+  p->raddr = raddr; /* unused */
+  p->rport = rport;
+  return p;
+}
+
+void init_gl_addr_map_entry_portmap(int32_t hp_node,
+                                    uint16_t rport)
+{
+  struct port_map_entry *pmap;
+  struct gl_addr_map_entry *gle;
+  pmap = port_map_entry_create(GL_ADDR_MAP_PORT_UNUSED, 0, rport);
+  if (pmap == NULL) {
+    debug("pmap creation failed");
+    return;
+  }
+  gle = get_gl_addr_map_entry_from_node(hp_node);
+  if (gle == NULL) {
+    debug("No such global address entry for %d", hp_node);
+    return;
+  }
+  if (gle->size >= GL_ADDR_MAP_ENTRY_NUM) {
+    /* too much port map in the entry (hp_node) */
+    debug("too much port map in the hp_node(%d)", hp_node);
+    return;
+  }
+  write_lock(&gl_addr_map.lock);
+  gle->maps[gle->size] = pmap;
+  pmap->gle = gle;
+  gle->size++;
+  write_lock(&gl_addr_map.lock);
+
+  return;
+}
+
+struct port_map_entry *
+add_gl_addr_map_entry_portmap(struct gl_addr_map_entry* gle,
+                                   uint16_t vport)
+{
+  int i;
+  struct port_map_entry* pmap;
+  if (gle == NULL) {
+    debug("no such global addr map entry");
+    return NULL;
+  }
+  read_lock(&gl_addr_map.lock);
+  for (i=0; i<gle->size; ++i) {
+    pmap = gle->maps[i];
+    if (pmap->vport == GL_ADDR_MAP_PORT_UNUSED) {
+      read_unlock(&gl_addr_map.lock);
+      write_lock(&gl_addr_map.lock);
+      pmap->vport = vport;
+      write_unlock(&gl_addr_map.lock);
+      return pmap;
+    }
+  }
+  read_unlock(&gl_addr_map.lock);
+  return NULL;
+}
+
+struct port_map_entry *port_map_entry_from_addr_port(uint32_t vaddr,
+                                                           uint16_t vport)
+{
+  int i, j;
+  struct gl_addr_map_entry *gle;
+  struct port_map_entry *pmap;
+  read_lock(&gl_addr_map.lock);
+  for (i=0; i<gl_addr_map.size; ++i) {
+    gle = gl_addr_map.c[i];
+    if (gle->addr == vaddr) {
+      debug("found hp_node %d, which has %ud maps", gle->hp_node, gle->size);
+      for (j=0; j<gle->size; ++j) {
+        pmap = gle->maps[j];
+        if (pmap->vport == vport) { /* found the mapping */
+          read_unlock(&gl_addr_map.lock);
+          debug("found mapping node %d: %d -> %d",
+                gle->hp_node, (int)(pmap->rport), (int)(pmap->vport));
+          return pmap;
+        }
+      }
+      /* not found in the node */
+      read_unlock(&gl_addr_map.lock);
+      return add_gl_addr_map_entry_portmap(gle, vport);
+    }
+  }
+  read_unlock(&gl_addr_map.lock);
+  return NULL;
+}
+
+struct port_map_entry *port_map_entry_from_node_port(int32_t hp_node,
+                                                     uint16_t vport)
+{
+  int j;
+  struct gl_addr_map_entry *gle;
+  struct port_map_entry *pmap;
+  gle = get_gl_addr_map_entry_from_node(hp_node);
+  read_lock(&gl_addr_map.lock);
+  for (j=0; j<gle->size; ++j) {
+    pmap = gle->maps[j];
+    if (pmap->vport == vport) { /* found the mapping */
+      read_unlock(&gl_addr_map.lock);
+      debug("found mapping node %d: %d -> %d",
+            gle->hp_node, (int)(pmap->vport), (int)(pmap->rport));
+      return pmap;
+    }
+  }
+  read_unlock(&gl_addr_map.lock);
+  return NULL;
+}
+
 
 static void modify_sockaddr_connect(struct sockaddr *addr)
 {
@@ -71,6 +225,7 @@ static void modify_sockaddr_connect(struct sockaddr *addr)
   unsigned char localhost_addr[] = {127, 0, 0, 1};
   struct hp_message *msg;
   struct addr_map_entry *ame;
+  struct port_map_entry *pmap;
 
   get_ip_port_from_sockaddr(ip_addr, &vport, addr);
   //  debug("*** port %d.\n", vport);
@@ -93,6 +248,10 @@ static void modify_sockaddr_connect(struct sockaddr *addr)
   if (ame != NULL) {
     to_node = ame->hp_node;
     to_port = ame->rport;
+  } else {
+    pmap = port_map_entry_from_addr_port(vaddr, vport);
+    to_node = pmap->gle->hp_node;
+    to_port = pmap->rport;
   }
   /* Do nothing about the port when the port is 0. */
   if (to_port > 0) {
@@ -111,12 +270,18 @@ static void modify_sockaddr_bind(struct sockaddr *addr)
   uint16_t rport = 0;
   unsigned char ip_addr[4];
   struct addr_map_entry *ame;
+  struct port_map_entry *pmap;
   unsigned char localhost_addr[] = {127, 0, 0, 1};
   get_ip_port_from_sockaddr(ip_addr, &vport, addr);
   ame = addr_map_entry_from_node_port(current->hp_node,
                                       vport);
   if (ame) {
     rport = ame->rport;
+    set_ip_port_to_sockaddr(localhost_addr, rport, addr);
+  } else {
+    pmap = port_map_entry_from_node_port(current->hp_node,
+                                         vport);
+    rport = pmap->rport;
     set_ip_port_to_sockaddr(localhost_addr, rport, addr);
   }
   return;
@@ -180,24 +345,34 @@ static void hp_sys_sendto_hook(struct sockaddr_storage *address, int addrlen)
 static void hp_inet_gifconf_hook(struct ifreq *ifr)
 {
   uint32_t addr_i = (*(struct sockaddr_in *)&(ifr->ifr_addr)).sin_addr.s_addr;
-  int i;
-  unsigned char old_addr[4];
-  unsigned char c;
+  int old_addr[4];
   int32_t hp_node = current->hp_node;
+  struct addr_map_entry *ame;
   if (NOT_OBSERVED()) return;
+  /*
   for (i=0; i<4; ++i) {
     old_addr[i] = ((addr_i >> i*8)&0xFF);
   }
+  */
+  ints_from_addr(addr_i, old_addr, old_addr+1, old_addr+2, old_addr+3);
   addr_i = 0;
   /*
     If the addr points the real address, it replaces it
     with virtual address.
    */
   if (old_addr[0] == 133 && hp_node < HP_NODE_NUM) {
-    for (i=0; i<4; ++i) {
+    // local network
+    ame = addr_map_entry_from_node(hp_node);
+    if (ame == NULL) {
+      debug("No such hp_node");
+      return;
+    }
+    addr_i = ame->addr;
+      /*
+        for (i=0; i<4; ++i) {
       c = hp_node_ipaddr[current->hp_node][i];
       addr_i |= c << (8 * i);
-    }
+    } */
     (*(struct sockaddr_in *)&(ifr->ifr_addr)).sin_addr.s_addr = addr_i;
   }
 }
@@ -209,14 +384,17 @@ static void hp_inet_gifconf_hook(struct ifreq *ifr)
 static void hp_devinet_siocgifaddr_hook(struct sockaddr_in *sin)
 {
   uint addr_i = sin->sin_addr.s_addr;
-  int i;
-  unsigned char old_addr[4];
-  unsigned char c;
+  int old_addr[4];
   int32_t hp_node = current->hp_node;
+  struct addr_map_entry *ame;
   if (NOT_OBSERVED()) return;
+  ints_from_addr(addr_i, old_addr, old_addr+1, old_addr+2, old_addr+3);
+  /*
   for (i=0; i<4; ++i) {
     old_addr[i] = ((addr_i >> i*8)&0xFF);
   }
+  */
+
   addr_i = 0;
 
   /*
@@ -224,10 +402,18 @@ static void hp_devinet_siocgifaddr_hook(struct sockaddr_in *sin)
     with virtual address.
    */
   if (old_addr[0] == 133 && hp_node < HP_NODE_NUM) {
+    ame = addr_map_entry_from_node(hp_node);
+    if (ame == NULL) {
+      debug("No such hp_node");
+      return;
+    }
+    addr_i = ame->addr;
+    /*
     for (i=0; i<4; ++i) {
       c = hp_node_ipaddr[current->hp_node][i];
       addr_i |= c << (8 * i);
     }
+    */
     sin->sin_addr.s_addr = addr_i;
   }
 }
@@ -265,6 +451,15 @@ uint32_t addr_from_4ints(unsigned char a, unsigned  char b,
     | ((uint32_t)b)<<8 | ((uint32_t)a);
 }
 
+void ints_from_addr(uint32_t addr,
+                     int *a, int *b,
+                     int *c, int *d)
+{
+  *a = addr & 0xFF;
+  *b = (addr >> 8) & 0xFF;
+  *c = (addr >> 16) & 0xFF;
+  *d = (addr >> 24) & 0xFf;
+}
 
 struct addr_map_entry *addr_map_entry_create(int32_t hp_node, uint32_t addr,
                                              uint16_t vport, uint16_t rport)
@@ -282,7 +477,7 @@ struct gl_addr_map_entry *gl_addr_map_entry_create(int32_t hp_node)
 {
   struct gl_addr_map_entry *p = hp_alloc(sizeof(struct gl_addr_map_entry));
   p->hp_node = hp_node;
-  p->addr = 0; // unused yet
+  p->addr = GL_ADDR_MAP_ADDR_UNUSED; // unused yet
   p->size = 0;
   return p;
 }
@@ -299,63 +494,22 @@ void add_addr_map_entry(int32_t hp_node, uint32_t addr,
   write_unlock(&addr_map.lock);
 }
 
-struct gl_addr_map_entry * get_gl_addr_map_entry_from_node(int32_t hp_node)
-{
-  int i;
-  read_lock(&gl_addr_map.lock);
-  for (i=0; i<gl_addr_map.size; ++i) {
-    if (gl_addr_map.c[i]->hp_node == hp_node) {
-      read_unlock(&gl_addr_map.lock);
-      return gl_addr_map.c[i];
-    }
-  }
-  read_unlock(&gl_addr_map.lock);
-  return NULL;
-}
 
 
-struct port_map_entry* port_map_entry_create(uint16_t vport,
-                                             uint32_t raddr,
-                                             uint16_t rport)
+void add_gl_addr_map_entry(uint32_t addr)
 {
-  struct port_map_entry *p = hp_alloc(sizeof(struct port_map_entry));
-  p->vport = vport;
-  p->raddr = raddr; /* unused */
-  p->rport = rport;
-  return p;
-}
-
-void add_gl_addr_map_entry_portmap(int32_t hp_node,
-                                   uint16_t vport, uint16_t rport)
-{
-  struct gl_addr_map_entry* gle;
-  int i;
-  struct port_map_entry* pmap;
+  struct gl_addr_map_entry *gle = get_gl_addr_map_unused_entry();
   write_lock(&gl_addr_map.lock);
-  gle = get_gl_addr_map_entry_from_node(hp_node);
   if (gle == NULL) {
-    debug("no such global addr map entry");
+    write_unlock(&gl_addr_map.lock);
+    debug("invalid global addr mapping");
     return;
   }
-
-  if (gle->size >= GL_ADDR_MAP_ENTRY_NUM) {
-    /* too much port map in the entry (hp_node) */
-    debug("too much port map in the hp_node(%d)", hp_node);
-    return;
-  }
-
-  pmap = port_map_entry_create(vport, 0, rport);
-  if (pmap == NULL) {
-    debug("pmap creation failed");
-    return;
-  }
-  gle->maps[i] = pmap;
-  gle->size += 1;
+  gle->addr = addr;
   write_unlock(&gl_addr_map.lock);
-  return;
 }
 
-void add_gl_addr_map_entry(int32_t hp_node)
+void init_gl_addr_map_entry(int32_t hp_node)
 {
   struct gl_addr_map_entry *gle = gl_addr_map_entry_create(hp_node);
   write_lock(&gl_addr_map.lock);
@@ -364,13 +518,18 @@ void add_gl_addr_map_entry(int32_t hp_node)
   write_unlock(&gl_addr_map.lock);
 }
 
+
+
 int init_gl_addr_map(void)
 {
-  rwlock_init(&addr_map.lock);
+  int32_t hp_node;
   rwlock_init(&gl_addr_map.lock);
-  write_lock(&gl_addr_map.lock);
   gl_addr_map.size = 0;
-  write_unlock(&gl_addr_map.lock);
+  for (hp_node = HP_GLOBAL_NODE_OFFSET;
+       hp_node < HP_GLOBAL_NODE_OFFSET + HP_GL_NODE_NUM;
+       ++hp_node) {
+    init_gl_addr_map_entry(hp_node);
+  }
   return 0;
 }
 
@@ -386,10 +545,6 @@ int init_addr_map(void)
   return 0;
 }
 
-void addr_map_entry_delete(struct addr_map_entry* ame)
-{
-  hp_free(ame);
-}
 
 void gl_addr_map_entry_delete(struct gl_addr_map_entry* gle)
 {
@@ -404,6 +559,11 @@ void gl_addr_map_entry_delete(struct gl_addr_map_entry* gle)
     }
   }
   hp_free(gle);
+}
+
+void addr_map_entry_delete(struct addr_map_entry* ame)
+{
+  hp_free(ame);
 }
 
 struct addr_map_entry *addr_map_entry_from_addr_port(uint32_t addr,
@@ -430,6 +590,22 @@ struct addr_map_entry *addr_map_entry_from_node_port(int32_t hp_node,
     if (addr_map.c[i]->hp_node == hp_node && addr_map.c[i]->vport == vport) {
       read_unlock(&addr_map.lock);
       return addr_map.c[i];
+    }
+  }
+  read_unlock(&addr_map.lock);
+  return NULL;
+}
+
+struct addr_map_entry *addr_map_entry_from_node(int32_t hp_node)
+{
+  int i;
+  struct addr_map_entry *ame;
+  read_lock(&addr_map.lock);
+  for (i=0; i<addr_map.size; ++i) {
+    ame = addr_map.c[i];
+    if (ame->hp_node == hp_node) {
+      read_unlock(&addr_map.lock);
+      return ame;
     }
   }
   read_unlock(&addr_map.lock);

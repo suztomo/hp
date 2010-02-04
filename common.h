@@ -9,6 +9,7 @@ void *hp_alloc(size_t size);
 void hp_free(void *p);
 
 #define HP_NODE_NUM 1000
+#define HP_GLOBAL_NODE_OFFSET HP_NODE_NUM
 #define HP_GL_NODE_NUM 1000
 
 #define debug(...) { \

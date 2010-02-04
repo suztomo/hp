@@ -28,6 +28,7 @@ struct port_map_entry{
   uint16_t vport;
   uint32_t raddr; /* unused */
   uint16_t rport;
+  struct gl_addr_map_entry* gle;
 };
 
 #define GL_ADDR_MAP_ENTRY_NUM 5
@@ -58,14 +59,20 @@ struct addr_map_t{
 
 uint32_t addr_from_4ints(unsigned char a, unsigned  char b,
                          unsigned char c, unsigned  char d);
-
-
+void ints_from_addr(uint32_t addr,
+                     int *a, int *b,
+                     int *c, int *d);
 extern void add_addr_map_entry(int32_t hp_node, uint32_t addr,
                                uint16_t vport, uint16_t rport);
 struct addr_map_entry *addr_map_entry_from_addr_port(uint32_t addr,
                                                      uint16_t vport);
 struct addr_map_entry *addr_map_entry_from_node_port(int32_t hp_node,
                                                      uint16_t vport);
+struct addr_map_entry *addr_map_entry_from_node(int32_t hp_node);
+
+
+void init_gl_addr_map_entry_portmap(int32_t hp_node,
+                                    uint16_t rport);
 extern struct addr_map_t addr_map;
 extern struct gl_addr_map_t gl_addr_map;
 extern int init_addr_map(void);

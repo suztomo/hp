@@ -18,10 +18,6 @@
 /* Initialized to NULL */
 struct dentry *hp_dentries[HP_DENTRY_NUM];
 
-/* Initialized to zero */
-unsigned char hp_node_ipaddr[HP_NODE_NUM+1][4];
-int hp_node_port[HP_NODE_NUM+1];
-
 inline const unsigned char *file_fname(struct file *file)
 {
   /* Null terminated? */

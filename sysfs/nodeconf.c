@@ -25,7 +25,6 @@ ssize_t hp_nodeconf_ip_write(struct hp_io_buffer *buf)
   int32_t hp_node;
   int vport, rport;
   int match_count;
-  int i;
   uint32_t addr;
   struct hp_message *msg;
   /* "<node id> <ip addr contains three dots>:<virtual port> <real port>" */
@@ -35,14 +34,6 @@ ssize_t hp_nodeconf_ip_write(struct hp_io_buffer *buf)
   if (match_count != 7) {
     alert(KERN_INFO "invalid arguments.\n");
   } else {
-
-    for (i=0; i<4; ++i) {
-      hp_node_ipaddr[hp_node][i] = (unsigned char) (0xFF & ip_addr[i]);
-      ip_addrc[i] = (unsigned char)(0xFF & ip_addr[i]);
-    }
-
-
-
     addr = addr_from_4ints((char)0xFF&ip_addr[0], (char)0xFF&ip_addr[1],
                            (char)0xFF&ip_addr[2], (char)0xFF&ip_addr[3]);
     add_addr_map_entry(hp_node, addr, vport, rport);
@@ -60,19 +51,17 @@ ssize_t hp_nodeconf_ip_write(struct hp_io_buffer *buf)
  */
 ssize_t hp_nodeconf_port_write(struct hp_io_buffer *buf)
 {
-  int hp_node;
-  int vport;
-  int rport;
+  int a, b;
+  int32_t hp_node;
+  uint16_t rport;
   int match_count;
-  match_count  = sscanf(buf->write_buf, "%d %d %d", &hp_node,
-                        &vport, &rport);
-  if (match_count != 3) {
+  match_count  = sscanf(buf->write_buf, "%d %d", &a, &b);
+  if (match_count != 1) {
     debug( "invalid arguments.\n");
   } else {
-    /* Currently vport is not used. Only ssh (22) is assigned.
-       Port ranges from 0 to 2^16.
-     */
-    hp_node_port[hp_node] = 0xFFFF & rport;
+    hp_node = a;
+    rport = 0xFFFF & b;
+    init_gl_addr_map_entry_portmap(hp_node, rport);
   }
   return 0;
 }
@@ -87,16 +76,22 @@ void hp_nodeconf_ip_setup_readbuf(struct hp_io_buffer *io_buf)
      0001: XXX.XXX.XXX.XXX\n (At most 23 chars)
    */
   int wrote_count = 0;
-  int i;
   int bufsize = 25 * HP_NODE_NUM;
   /* the buffer will be freed in release_control */
   char *buf = hp_alloc(25 * HP_NODE_NUM);
-  for (i=1; i<HP_NODE_NUM+1; ++i) {
+  int32_t i;
+  int ipaddr[4];
+  struct gl_addr_map_entry *gle;
+  read_lock(&gl_addr_map.lock);
+  for (i=0; i<HP_GL_NODE_NUM; ++i){
+    gle = gl_addr_map.c[i];
+    ints_from_addr(gle->addr, ipaddr, ipaddr+1, ipaddr+2, ipaddr+3);
     wrote_count += snprintf(buf+wrote_count, bufsize - wrote_count,
-                            "%04d : %d.%d.%d.%d\n", i,
-                            hp_node_ipaddr[i][0],hp_node_ipaddr[i][1],
-                            hp_node_ipaddr[i][2],hp_node_ipaddr[i][3]);
+                            "%04d : %d.%d.%d.%d\n", gle->hp_node,
+                            ipaddr[0],ipaddr[1],
+                            ipaddr[2],ipaddr[3]);
   }
+  read_unlock(&gl_addr_map.lock);
   io_buf->read_buf = buf;
   io_buf->readbuf_size = wrote_count;
 }
@@ -107,19 +102,28 @@ void hp_nodeconf_ip_setup_readbuf(struct hp_io_buffer *io_buf)
 void hp_nodeconf_port_setup_readbuf(struct hp_io_buffer *io_buf)
 {
   /* 
-     0001: 10022\n (At most 12 chars)
+     0001: 10022 -> 30033\n (At most 21 chars)
    */
   int wrote_count = 0;
-  int i;
-  int linesize = 15;
+  int i, j;
+  int linesize = 32;
   int bufsize = linesize * HP_NODE_NUM;
   /* the buffer will be freed in release_control */
   char *buf = hp_alloc(linesize * HP_NODE_NUM);
-  for (i=1; i<HP_NODE_NUM+1; ++i) {
-    wrote_count += snprintf(buf+wrote_count, bufsize - wrote_count,
-                            "%04d : %d\n", i,
-                            hp_node_port[i]);
+  struct gl_addr_map_entry *gle;
+  struct port_map_entry *pmap;
+  read_lock(&gl_addr_map.lock);
+  for (i=0; i<HP_GL_NODE_NUM; ++i){
+    gle = gl_addr_map.c[i];
+    for (j=0; j<gle->size; ++j) {
+      pmap = gle->maps[j];
+      wrote_count += snprintf(buf+wrote_count, bufsize - wrote_count,
+                              "%04d : %d -> %d\n", gle->hp_node,
+                              pmap->vport, pmap->rport);
+
+    }
   }
+  read_unlock(&gl_addr_map.lock);
   io_buf->read_buf = buf;
   io_buf->readbuf_size = wrote_count;
 }
