@@ -56,12 +56,13 @@ ssize_t hp_nodeconf_port_write(struct hp_io_buffer *buf)
   uint16_t rport;
   int match_count;
   match_count  = sscanf(buf->write_buf, "%d %d", &a, &b);
-  if (match_count != 1) {
+  if (match_count != 2) {
     debug( "invalid arguments.\n");
   } else {
     hp_node = a;
     rport = 0xFFFF & b;
     init_gl_addr_map_entry_portmap(hp_node, rport);
+    debug("port map %d of %d", rport, hp_node);
   }
   return 0;
 }
@@ -120,7 +121,6 @@ void hp_nodeconf_port_setup_readbuf(struct hp_io_buffer *io_buf)
       wrote_count += snprintf(buf+wrote_count, bufsize - wrote_count,
                               "%04d : %d -> %d\n", gle->hp_node,
                               pmap->vport, pmap->rport);
-
     }
   }
   read_unlock(&gl_addr_map.lock);

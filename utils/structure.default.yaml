@@ -68,6 +68,7 @@ fs:
 
 variables:
   SSHD_DIR1: "/usr/src/openssh"
+  NETCAT_DIR: "/home/suzuki/hp/utils"
 
 networks:
   vnet1:
@@ -101,5 +102,25 @@ networks:
           22 : 10222
           80 : 10280
           6667 : 10877
+
+
+globals:
+  machines: []
+  machines_auto:
+    from: 1000
+    to: 1999
+    data:
+      hp_node : $I # $I = 0,1,2,3... 1000
+      daemons :
+        - port : ($I*10+30000)
+          command : "/usr/bin/nohup $NETCAT_DIR/ncwhile.sh"
+        - port : ($I*10+30001)
+          command : "/usr/bin/nohup $NETCAT_DIR/ncwhile.sh"
+        - port : ($I*10+30002)
+          command : "/usr/bin/nohup $NETCAT_DIR/ncwhile.sh"
+        - port : ($I*10+30003)
+          command : "/usr/bin/nohup $NETCAT_DIR/ncwhile.sh"
+        - port : ($I*10+30004)
+          command : "/usr/bin/nohup $NETCAT_DIR/ncwhile.sh"
 
 

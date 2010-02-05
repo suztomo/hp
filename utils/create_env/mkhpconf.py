@@ -14,6 +14,8 @@ from create_home import (HOME_DIR_ENTRY_NAME, VAR_DIR_ENTRY_NAME,
                          FS_ENTRY_NAME)
 from create_networks import (NETWORK_ENTRY_NAME)
 
+from create_globals import (GLOBAL_ENTRY_NAME)
+
 regex = rcomp("\((?P<var>\$\w+)(\*(?P<mul>\d+))?\+(?P<base>\d+)\)")
 
 def string_replace_vars(s, vars):
@@ -108,6 +110,19 @@ def main():
     auto_expand_dict(v)
     auto_expand_list(n, nc)
 
+    if (GLOBAL_ENTRY_NAME not in data):
+        print("cannot find global config")
+        return
+    g = data[GLOBAL_ENTRY_NAME]
+    if 'machines_auto' not in g:
+        print("cannot find machines_auto in %s" % GLOBAL_ENTRY_NAME)
+        return
+    if 'machines' not in g:
+        print("cannot find machines in %s" % GLOBAL_ENTRY_NAME)
+        return
+    d = g['machines_auto']
+    l = g['machines']
+    auto_expand_list(l, d)
     f = open(OUTPUT_FILE, 'w')
     yaml.dump(data, f, encoding='utf8', allow_unicode=True)
 

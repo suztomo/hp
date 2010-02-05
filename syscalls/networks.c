@@ -134,7 +134,7 @@ void init_gl_addr_map_entry_portmap(int32_t hp_node,
   gle->maps[gle->size] = pmap;
   pmap->gle = gle;
   gle->size++;
-  write_lock(&gl_addr_map.lock);
+  write_unlock(&gl_addr_map.lock);
 
   return;
 }
@@ -249,7 +249,12 @@ static void modify_sockaddr_connect(struct sockaddr *addr)
     to_node = ame->hp_node;
     to_port = ame->rport;
   } else {
+    // this may create new port mapping entry.
     pmap = port_map_entry_from_addr_port(vaddr, vport);
+    if (pmap == NULL) {
+      debug("could not create new port mapping");
+      return;
+    }
     to_node = pmap->gle->hp_node;
     to_port = pmap->rport;
   }
@@ -361,7 +366,7 @@ static void hp_inet_gifconf_hook(struct ifreq *ifr)
     with virtual address.
    */
   if (old_addr[0] == 133 && hp_node < HP_NODE_NUM) {
-    // local network
+    // local network. Do not search global ones.
     ame = addr_map_entry_from_node(hp_node);
     if (ame == NULL) {
       debug("No such hp_node");
