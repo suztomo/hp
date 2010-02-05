@@ -108,19 +108,19 @@ globals:
   machines: []
   machines_auto:
     from: 1000
-    to: 1999
+    to: 1001
     data:
       hp_node : $I # $I = 0,1,2,3... 1000
       daemons :
         - port : ($I*10+30000)
-          command : "/usr/bin/nohup $NETCAT_DIR/ncwhile.sh"
+          command : "$NETCAT_DIR/ncwhile_back.sh ($I*10+30000)"
         - port : ($I*10+30001)
-          command : "/usr/bin/nohup $NETCAT_DIR/ncwhile.sh"
+          command : "$NETCAT_DIR/ncwhile_back.sh ($I*10+30001)"
         - port : ($I*10+30002)
-          command : "/usr/bin/nohup $NETCAT_DIR/ncwhile.sh"
+          command : "$NETCAT_DIR/ncwhile_back.sh ($I*10+30002)"
         - port : ($I*10+30003)
-          command : "/usr/bin/nohup $NETCAT_DIR/ncwhile.sh"
+          command : "$NETCAT_DIR/ncwhile_back.sh ($I*10+30003)"
         - port : ($I*10+30004)
-          command : "/usr/bin/nohup $NETCAT_DIR/ncwhile.sh"
+          command : "$NETCAT_DIR/ncwhile_back.sh ($I*10+30004)"
 
 

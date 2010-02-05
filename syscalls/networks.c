@@ -284,9 +284,13 @@ static void modify_sockaddr_bind(struct sockaddr *addr)
     rport = ame->rport;
     set_ip_port_to_sockaddr(localhost_addr, rport, addr);
   } else {
+    /* binding real port */
+    debug("binding port %d", vport);
+    /*
     pmap = port_map_entry_from_node_port(current->hp_node,
-                                         vport);
-    rport = pmap->rport;
+                                         rport);
+    */
+    rport = vport;
     set_ip_port_to_sockaddr(localhost_addr, rport, addr);
   }
   return;

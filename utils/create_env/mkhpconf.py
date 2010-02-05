@@ -18,55 +18,55 @@ from create_globals import (GLOBAL_ENTRY_NAME)
 
 regex = rcomp("\((?P<var>\$\w+)(\*(?P<mul>\d+))?\+(?P<base>\d+)\)")
 
-def string_replace_vars(s, vars):
+def string_replace_vars(s, env):
     m = regex.search(s)
     if m:
         v = m.group('var')
         b = m.group('base')
         bi = int(b)
         mul = m.group('mul')
-        if v not in vars:
+        if v not in env:
             print("no such variables")
             return s
-        vi = int(vars[v])
+        vi = int(env[v])
         if mul:
             vi *= int(mul)
-        s = str(vi + bi)
-    else:
-        for k in vars:
-            s = s.replace(k, vars[k])
+        
+        s = s[:m.start()] + str(vi + bi) + s[m.end():]
+    for k in env:
+        s = s.replace(k, env[k])
     return s
 
-def dict_replace_vars(dic, vars):
+def dict_replace_vars(dic, env):
     ret = {}
     for k in dic:
         newk = k
         if type(k) is StringType:
             # key may be IntType
-            newk = string_replace_vars(k, vars)
-        ret[newk] = do_replace_vars_data(dic[k], vars)
+            newk = string_replace_vars(k, env)
+        ret[newk] = do_replace_vars_data(dic[k], env)
     return ret
 
-def list_replace_vars(lst, vars):
-    return [do_replace_vars_data(s,vars) for s in lst]
+def list_replace_vars(lst, env):
+    return [do_replace_vars_data(s,env) for s in lst]
 
-def do_replace_vars_data(d, vars):
+def do_replace_vars_data(d, env):
     if type(d) is DictType:
-        return dict_replace_vars(d, vars)
+        return dict_replace_vars(d, env)
     if type(d) is ListType:
-        return list_replace_vars(d, vars)
+        return list_replace_vars(d, env)
     if type(d) is StringType:
-        return string_replace_vars(d, vars)
+        return string_replace_vars(d, env)
     return d
 
-def replaced_vars_data(d, vars):
-    if not type(vars) is DictType:
+def replaced_vars_data(d, env):
+    if not type(env) is DictType:
         print("vars should be dict")
         return
     if type(d) is StringType:
         print("data should not be string")
         return
-    return do_replace_vars_data(d, vars)
+    return do_replace_vars_data(d, env)
 
 def auto_expand_dict(dic, e = None):
     if not 'auto' in dic:

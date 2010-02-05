@@ -38,7 +38,7 @@ def mark_self(hp_node):
     f = open(FILE_SELFCONF, "w")
     line = "%d" % hp_node
     if verbose:
-        print 'writing "%s" to %s\n' % (line, FILE_SELFCONF)
+        print '  writing "%s" to %s' % (line, FILE_SELFCONF)
     f.write("%s\n" % line)
     f.close()
 
@@ -54,7 +54,7 @@ def create_node(node, machine_addr, vport, rport):
 def exec_cmd(lst):
     if verbose:
         cmd = " ".join(lst)
-        print "Executing %s\n" % cmd
+        print "  executing %s" % cmd
     output = call(lst)
     return output
 

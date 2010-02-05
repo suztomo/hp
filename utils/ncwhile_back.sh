@@ -1,9 +1,7 @@
-#!/bin/sh
+#!/bin/zsh
 PORT=$1
 if [ -z $PORT ]; then
     echo "specify port"
     exit 1
 fi
-while true; do
-nc -l -p $PORT
-done
+/usr/bin/nohup /home/suzuki/hp/utils/ncwhile.sh $PORT &

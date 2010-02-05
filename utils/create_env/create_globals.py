@@ -16,25 +16,12 @@ VARIABLES_ENTRY_NAME = "variables"
 FILE_PORTCONFIG = "/sys/kernel/security/hp/node_port"
 HPEXEC_SCRIPT = "hputil.py"
 
-regex = rcomp("\((?P<var>\$\w+)(\*(?P<mul>\d+))?\+(?P<base>\d+)\)")
-
 def string_replace_vars(s, env):
-    m = regex.search(s)
-    if m:
-        v = m.group('var')
-        b = m.group('base')
-        bi = int(b)
-        mul = m.group('mul')
-        if v not in env:
-            print("no such variables")
-            return s
-        vi = int(env[v])
-        if mul:
-            vi *= int(mul)
-        s = str(vi + bi)
-    else:
-        for k in env:
-            s = s.replace(k, env[k])
+    for k in env:
+        vname1 = "$%s" % k
+        vname2 = "${%s}" % k
+        s = s.replace(vname1, env[k])
+        s = s.replace(vname2, env[k])
     return s
 
 def dict_replace_vars(dic, env):
@@ -73,15 +60,16 @@ def expand_commands(cmds, env):
 
 def run_command_in_node(hp_node, cmd, args):
     if verbose:
-        call([HPEXEC_SCRIPT, "-n", "-d", str(hp_node), "-e", cmd]+args)
+        call([HPEXEC_SCRIPT, "-d", "-n", str(hp_node), "-e", cmd]+args)
     else:
         call([HPEXEC_SCRIPT, "-n", str(hp_node), "-e", cmd]+args)
 
 
 def run_daemons(hp_node, daemons):
     for d in daemons:
-        print("  Node %s invokes %s" % (hp_node, d))
-        ds = d.split(" ")
+        print("  Node %s invokes %s" % (hp_node, d['command']))
+        c = d['command']
+        ds = c.split(" ")
         cmd = ds[0]
         args = ds[1:]
         run_command_in_node(hp_node, cmd, args)
@@ -91,10 +79,10 @@ def notify_port_map(hp_node, port):
     try:
         f = open(FILE_PORTCONFIG, "w")
     except IOError:
-        error("Cannot open as writing %s\n" % FILE_PORTCONFIG)
+        error("Cannot open as writing %s" % FILE_PORTCONFIG)
         sys.exit(1)
     if verbose:
-        print 'writing "%s" to %s\n' % (line, FILE_PORTCONFIG)
+        print '  writing "%s" to %s' % (line, FILE_PORTCONFIG)
     f.write("%s\n" % line)
     f.close()
 
@@ -102,6 +90,8 @@ def run_machine(machine, env):
     daemons = machine.get('daemons', [])
     daemons = expand_commands(daemons, env)
     hp_node = int(machine.get('hp_node', -1))
+    if verbose:
+        print("  hp_node %d" % hp_node)
     if hp_node == -1:
         print("machine has invalid hp_node")
         st()
@@ -113,7 +103,6 @@ def run_machine(machine, env):
             sys.exit(1)
         port = int(d['port'])
         notify_port_map(hp_node, port)
-        run_command_in_node
     run_daemons(hp_node, daemons)
 
 def create_globals(data, env):
@@ -121,6 +110,8 @@ def create_globals(data, env):
         print("machines is not in %s" % GLOBAL_ENTRY_NAME)
         sys.exit(1)
     machines = data['machines']
+    if verbose:
+        print("Run machines")
     for m in machines:
         run_machine(m, env)
 
@@ -159,6 +150,8 @@ def main():
             verbose = True
     env = {}
     sfile = args[0]
+    if verbose:
+        print("reading config file %s" % sfile)
     try:
         text = open(sfile).read()
         data = yaml.load(text)
@@ -174,7 +167,7 @@ def main():
                 print("  $%s : %s" % (k, env[k]))
 
     if GLOBAL_ENTRY_NAME not in data:
-        error("Invalid format of %s entry\n" % GLOBAL_DUMMY_ENTRY_NAME)
+        error("Invalid format of %s entry\n" % GLOBAL_ENTRY_NAME)
         sys.exit(1)
 
     create_globals(data[GLOBAL_ENTRY_NAME], env)
