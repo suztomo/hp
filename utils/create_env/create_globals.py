@@ -16,6 +16,8 @@ VARIABLES_ENTRY_NAME = "variables"
 FILE_PORTCONFIG = "/sys/kernel/security/hp/node_port"
 HPEXEC_SCRIPT = "hputil.py"
 
+verbose = False
+
 def string_replace_vars(s, env):
     for k in env:
         vname1 = "$%s" % k

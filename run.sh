@@ -11,7 +11,8 @@ fi
 
 # twistd requires two-times pkill(?)
 trap 'echo; echo "end"; pkill twistd;pkill twistd;pkill sshd; \
-  $HOME/hp/experiments/apache2/kill_apache.sh; make uninstall; exit' 1 2 3 15
+  $HOME/hp/experiments/apache2/kill_apache.sh; make uninstall; \
+  $HOME/hp/utils/kill_ncwhile.sh; exit' 1 2 3 15
 cd $HOME/hp/utils/tty_server; twistd -y tty_server.py
 cd $HOME/hp
 while true; do
