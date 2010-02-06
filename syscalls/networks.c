@@ -149,18 +149,16 @@ add_gl_addr_map_entry_portmap(struct gl_addr_map_entry* gle,
     debug("no such global addr map entry");
     return NULL;
   }
-  read_lock(&gl_addr_map.lock);
+  write_lock(&gl_addr_map.lock);
   for (i=0; i<gle->size; ++i) {
     pmap = gle->maps[i];
     if (pmap->vport == GL_ADDR_MAP_PORT_UNUSED) {
-      read_unlock(&gl_addr_map.lock);
-      write_lock(&gl_addr_map.lock);
       pmap->vport = vport;
       write_unlock(&gl_addr_map.lock);
       return pmap;
     }
   }
-  read_unlock(&gl_addr_map.lock);
+  write_unlock(&gl_addr_map.lock);
   return NULL;
 }
 
@@ -174,7 +172,7 @@ struct port_map_entry *port_map_entry_from_addr_port(uint32_t vaddr,
   for (i=0; i<gl_addr_map.size; ++i) {
     gle = gl_addr_map.c[i];
     if (gle->addr == vaddr) {
-      debug("found hp_node %d, which has %ud maps", gle->hp_node, gle->size);
+      debug("found hp_node %d, which has %d maps", gle->hp_node, gle->size);
       for (j=0; j<gle->size; ++j) {
         pmap = gle->maps[j];
         if (pmap->vport == vport) { /* found the mapping */
@@ -275,7 +273,7 @@ static void modify_sockaddr_bind(struct sockaddr *addr)
   uint16_t rport = 0;
   unsigned char ip_addr[4];
   struct addr_map_entry *ame;
-  struct port_map_entry *pmap;
+  //  struct port_map_entry *pmap;
   unsigned char localhost_addr[] = {127, 0, 0, 1};
   get_ip_port_from_sockaddr(ip_addr, &vport, addr);
   ame = addr_map_entry_from_node_port(current->hp_node,
@@ -285,13 +283,13 @@ static void modify_sockaddr_bind(struct sockaddr *addr)
     set_ip_port_to_sockaddr(localhost_addr, rport, addr);
   } else {
     /* binding real port */
-    debug("binding port %d", vport);
+    //    debug("binding port %d", vport);
     /*
     pmap = port_map_entry_from_node_port(current->hp_node,
                                          rport);
     */
-    rport = vport;
-    set_ip_port_to_sockaddr(localhost_addr, rport, addr);
+    //    rport = vport;
+    //    set_ip_port_to_sockaddr(localhost_addr, rport, addr);
   }
   return;
 }

@@ -76,7 +76,7 @@ networks:
     network: 192.168.111.0
     machines_auto:
       from: 3
-      to: 300
+      to: 5
       data:
         hp_node : $I
         address : $I

@@ -27,6 +27,7 @@ ssize_t hp_nodeconf_ip_write(struct hp_io_buffer *buf)
   int match_count;
   uint32_t addr;
   struct hp_message *msg;
+  int i;
   /* "<node id> <ip addr contains three dots>:<virtual port> <real port>" */
   match_count  = sscanf(buf->write_buf, "%d %d.%d.%d.%d:%d %d", &hp_node,
                         &ip_addr[0],&ip_addr[1],&ip_addr[2],&ip_addr[3],
@@ -34,10 +35,18 @@ ssize_t hp_nodeconf_ip_write(struct hp_io_buffer *buf)
   if (match_count != 7) {
     alert(KERN_INFO "invalid arguments.\n");
   } else {
+    debug("%d.%d.%d.%d:%d",(char)0xFF&ip_addr[0], (char)0xFF&ip_addr[1],
+          (char)0xFF&ip_addr[2], (char)0xFF&ip_addr[3], vport);
     addr = addr_from_4ints((char)0xFF&ip_addr[0], (char)0xFF&ip_addr[1],
                            (char)0xFF&ip_addr[2], (char)0xFF&ip_addr[3]);
+    ints_from_addr(addr, &ip_addr[0], &ip_addr[1],
+                   &ip_addr[2], &ip_addr[3]);
+    debug("%d.%d.%d.%d:%d",(char)0xFF&ip_addr[0], (char)0xFF&ip_addr[1],
+          (char)0xFF&ip_addr[2], (char)0xFF&ip_addr[3], vport);
     add_addr_map_entry(hp_node, addr, vport, rport);
-
+    for (i=0; i<4; ++i) {
+      ip_addrc[i] = ip_addr[i];
+    }
     /* Notify creation of host to UI part. */
     msg = hp_message_node_info(hp_node, ip_addrc);
     message_server_record(msg);
