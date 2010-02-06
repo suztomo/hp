@@ -74,13 +74,8 @@ static void hp_do_tty_write(struct tty_struct *tty, size_t size)
   /*
     Do nothing against unobserved processes.
    */
-  if (current->hp_node < 0)
+  if (NOT_OBSERVED())
     return;
-  /*
-  if (strcmp(current->comm, "sshd") != 0) {
-    return;
-  }
-  */
 
   do_gettimeofday(&tv);
 
@@ -100,7 +95,8 @@ static void hp_do_tty_write(struct tty_struct *tty, size_t size)
     cur_sec = tv.tv_sec - start_sec - 1;
     cur_usec = 1000000 + tv.tv_usec - start_usec;
   }
-  record_tty_output(current->hp_node, tty, cur_sec, cur_usec, size, tty->write_buf);
+  record_tty_output(current->hp_node, tty, cur_sec,
+                    cur_usec, size, tty->write_buf);
 }
 
 

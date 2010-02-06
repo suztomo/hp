@@ -127,7 +127,7 @@ extern wait_queue_head_t hp_message_server_wait_queue;
 extern struct hp_message *hp_message_syscall(const char *name);
 extern struct hp_message *hp_message_root_priv(const char *cmd);
 extern struct hp_message *hp_message_node_info(int32_t hp_node,
-                                               const unsigned char addr[4]);
+                                               uint32_t addr);
 extern struct hp_message *hp_message_connect(int32_t to_node,
                                              const unsigned char addr[4],
                                              uint16_t port);

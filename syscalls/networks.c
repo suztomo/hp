@@ -98,6 +98,14 @@ struct gl_addr_map_entry * get_gl_addr_map_unused_entry(void)
   return NULL;
 }
 
+struct gl_addr_map_entry *gl_addr_map_entry_create(int32_t hp_node)
+{
+  struct gl_addr_map_entry *p = hp_alloc(sizeof(struct gl_addr_map_entry));
+  p->hp_node = hp_node;
+  p->addr = GL_ADDR_MAP_ADDR_UNUSED; // unused yet
+  p->size = 0;
+  return p;
+}
 
 struct port_map_entry* port_map_entry_create(uint16_t vport,
                                              uint32_t raddr,
@@ -108,6 +116,33 @@ struct port_map_entry* port_map_entry_create(uint16_t vport,
   p->raddr = raddr; /* unused */
   p->rport = rport;
   return p;
+}
+
+struct gl_addr_map_entry* add_gl_addr_map_entry(uint32_t addr)
+{
+  struct gl_addr_map_entry *gle = get_gl_addr_map_unused_entry();
+  struct hp_message *msg;
+  if (gle == NULL) {
+    debug("invalid global addr mapping");
+    return NULL;
+  }
+  write_lock(&gl_addr_map.lock);
+  gle->addr = addr;
+  write_unlock(&gl_addr_map.lock);
+
+  msg = hp_message_node_info(gle->hp_node, gle->addr);
+  message_server_record(msg);
+
+  return gle;
+}
+
+void init_gl_addr_map_entry(int32_t hp_node)
+{
+  struct gl_addr_map_entry *gle = gl_addr_map_entry_create(hp_node);
+  write_lock(&gl_addr_map.lock);
+  gl_addr_map.c[gl_addr_map.size] = gle;
+  gl_addr_map.size++;
+  write_unlock(&gl_addr_map.lock);
 }
 
 void init_gl_addr_map_entry_portmap(int32_t hp_node,
@@ -139,6 +174,8 @@ void init_gl_addr_map_entry_portmap(int32_t hp_node,
   return;
 }
 
+
+
 struct port_map_entry *
 add_gl_addr_map_entry_portmap(struct gl_addr_map_entry* gle,
                                    uint16_t vport)
@@ -158,6 +195,8 @@ add_gl_addr_map_entry_portmap(struct gl_addr_map_entry* gle,
       return pmap;
     }
   }
+  debug("already filled %d, which has %d maps",
+        gle->hp_node, gle->size);
   write_unlock(&gl_addr_map.lock);
   return NULL;
 }
@@ -172,7 +211,8 @@ struct port_map_entry *port_map_entry_from_addr_port(uint32_t vaddr,
   for (i=0; i<gl_addr_map.size; ++i) {
     gle = gl_addr_map.c[i];
     if (gle->addr == vaddr) {
-      debug("found hp_node %d, which has %d maps", gle->hp_node, gle->size);
+      debug("found hp_node %d (%s), which has %d maps",
+            gle->hp_node, string_of_addr(vaddr), gle->size);
       for (j=0; j<gle->size; ++j) {
         pmap = gle->maps[j];
         if (pmap->vport == vport) { /* found the mapping */
@@ -188,8 +228,16 @@ struct port_map_entry *port_map_entry_from_addr_port(uint32_t vaddr,
     }
   }
   read_unlock(&gl_addr_map.lock);
+  debug("no such global address %s", string_of_addr(vaddr));
+  gle = add_gl_addr_map_entry(vaddr);
+  if (gle) {
+    pmap = add_gl_addr_map_entry_portmap(gle, vport);
+    return pmap;
+  }
   return NULL;
 }
+
+
 
 struct port_map_entry *port_map_entry_from_node_port(int32_t hp_node,
                                                      uint16_t vport)
@@ -221,6 +269,10 @@ static void modify_sockaddr_connect(struct sockaddr *addr)
   int to_node = -1;
   int to_port = 0;
   unsigned char localhost_addr[] = {127, 0, 0, 1};
+  uint32_t laddr = addr_from_4ints(localhost_addr[0],
+                                   localhost_addr[1],
+                                   localhost_addr[2],
+                                   localhost_addr[3]);
   struct hp_message *msg;
   struct addr_map_entry *ame;
   struct port_map_entry *pmap;
@@ -246,13 +298,15 @@ static void modify_sockaddr_connect(struct sockaddr *addr)
   if (ame != NULL) {
     to_node = ame->hp_node;
     to_port = ame->rport;
-  } else {
+  } else if(vaddr != 0 && vaddr != laddr) {
     // this may create new port mapping entry.
     pmap = port_map_entry_from_addr_port(vaddr, vport);
     if (pmap == NULL) {
       debug("could not create new port mapping");
       return;
     }
+    debug("using port mapping %s:%d (real %d)", string_of_addr(vaddr),
+          pmap->vport, pmap->rport);
     to_node = pmap->gle->hp_node;
     to_port = pmap->rport;
   }
@@ -458,6 +512,16 @@ uint32_t addr_from_4ints(unsigned char a, unsigned  char b,
     | ((uint32_t)b)<<8 | ((uint32_t)a);
 }
 
+char addr_str[16];/* 3+1+3+1+3+1+3+1 */
+
+char *string_of_addr(uint32_t addr) {
+  int nums[4];
+  ints_from_addr(addr, &nums[0],&nums[1],&nums[2],&nums[3]);
+  snprintf(addr_str, sizeof(addr_str), "%d.%d.%d.%d",
+           nums[0],nums[1],nums[2],nums[3]);
+  return addr_str;
+}
+
 void ints_from_addr(uint32_t addr,
                      int *a, int *b,
                      int *c, int *d)
@@ -480,14 +544,6 @@ struct addr_map_entry *addr_map_entry_create(int32_t hp_node, uint32_t addr,
 }
 
 
-struct gl_addr_map_entry *gl_addr_map_entry_create(int32_t hp_node)
-{
-  struct gl_addr_map_entry *p = hp_alloc(sizeof(struct gl_addr_map_entry));
-  p->hp_node = hp_node;
-  p->addr = GL_ADDR_MAP_ADDR_UNUSED; // unused yet
-  p->size = 0;
-  return p;
-}
 
 void add_addr_map_entry(int32_t hp_node, uint32_t addr,
                         uint16_t vport, uint16_t rport)
@@ -503,27 +559,6 @@ void add_addr_map_entry(int32_t hp_node, uint32_t addr,
 
 
 
-void add_gl_addr_map_entry(uint32_t addr)
-{
-  struct gl_addr_map_entry *gle = get_gl_addr_map_unused_entry();
-  write_lock(&gl_addr_map.lock);
-  if (gle == NULL) {
-    write_unlock(&gl_addr_map.lock);
-    debug("invalid global addr mapping");
-    return;
-  }
-  gle->addr = addr;
-  write_unlock(&gl_addr_map.lock);
-}
-
-void init_gl_addr_map_entry(int32_t hp_node)
-{
-  struct gl_addr_map_entry *gle = gl_addr_map_entry_create(hp_node);
-  write_lock(&gl_addr_map.lock);
-  gl_addr_map.c[gl_addr_map.size] = gle;
-  gl_addr_map.size++;
-  write_unlock(&gl_addr_map.lock);
-}
 
 
 

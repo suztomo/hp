@@ -1,5 +1,7 @@
 #include "hp_message.h"
 
+#include "../syscalls/networks.h"
+
 struct semaphore hp_message_wakeup_sem;
 wait_queue_head_t hp_message_server_wait_queue;
 
@@ -42,13 +44,20 @@ struct hp_message *hp_message_root_priv(const char *cmd)
 }
 
 struct hp_message *hp_message_node_info(int32_t hp_node,
-                                        const unsigned char addr[4])
+                                        uint32_t addr)
 {
   int i;
+  int addrs[4];
   struct hp_message *msg = hp_message_create(HP_MESSAGE_NODE_INFO);
+  if (msg == NULL) {
+    return NULL;
+  }
+  
+  ints_from_addr(addr,
+                 addrs, addrs+1, addrs+2, addrs+3);
   msg->c.node_info.hp_node = hp_node;
   for (i=0; i<4; ++i) {
-    msg->c.node_info.addr[i] = addr[i];
+    msg->c.node_info.addr[i] = (char)(0xFF&addrs[i]);
   }
   return msg;
 }
@@ -70,6 +79,9 @@ struct hp_message *hp_message_connect(int32_t to_node,
 
 void message_server_record(struct hp_message *msg)
 {
+  if (msg == NULL) {
+    debug("could not malloc msg");
+  }
   write_lock(&message_server.lock);
   list_add_tail(&msg->list, &message_server.list);
   write_unlock(&message_server.lock);

@@ -76,7 +76,7 @@ networks:
     network: 192.168.111.0
     machines_auto:
       from: 3
-      to: 5
+      to: 41
       data:
         hp_node : $I
         address : $I
@@ -108,7 +108,7 @@ globals:
   machines: []
   machines_auto:
     from: 1000
-    to: 1001
+    to: 1050
     data:
       hp_node : $I # $I = 0,1,2,3... 1000
       daemons :

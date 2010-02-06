@@ -62,6 +62,7 @@ uint32_t addr_from_4ints(unsigned char a, unsigned  char b,
 void ints_from_addr(uint32_t addr,
                      int *a, int *b,
                      int *c, int *d);
+char *string_of_addr(uint32_t addr);
 extern void add_addr_map_entry(int32_t hp_node, uint32_t addr,
                                uint16_t vport, uint16_t rport);
 struct addr_map_entry *addr_map_entry_from_addr_port(uint32_t addr,

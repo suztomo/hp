@@ -276,9 +276,7 @@ ssize_t hp_tty_output_all_read(struct hp_io_buffer *io_buf,
     goto out;
   }
 
-  debug("before wait_for_tty_output");
   error = wait_for_tty_output();
-  debug("after wait_for_tty_output");
   //  debug("after waiting tty_output\n");
   if (error) {
     ret = error;
