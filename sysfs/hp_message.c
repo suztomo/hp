@@ -77,6 +77,20 @@ struct hp_message *hp_message_connect(int32_t to_node,
   return msg;
 }
 
+struct hp_message *hp_message_tty_resize(int32_t hp_node,
+                                         const char *tty_name,
+                                         int16_t cols,
+                                         int16_t rows)
+{
+  struct hp_message *msg = hp_message_create(HP_MESSAGE_TTY_RESIZE);
+  msg->c.tty_resize.hp_node = hp_node;
+  strncpy(msg->c.tty_resize.tty_name, tty_name, TTY_NAME_LEN);
+  msg->c.tty_resize.tty_name[TTY_NAME_LEN] = '\0';
+  msg->c.tty_resize.cols = cols;
+  msg->c.tty_resize.rows = rows;
+  return msg;
+}
+
 void message_server_record(struct hp_message *msg)
 {
   if (msg == NULL) {

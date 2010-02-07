@@ -28,7 +28,7 @@ typedef void (*inet_gifconf_hook) (struct ifreq *ifr);
 typedef void (*devinet_siocgifaddr_hook) (struct sockaddr_in *sin);
 typedef void (*sys_bind_hook) (struct sockaddr_storage *address, int addrlen);
 typedef void (*sys_sendto_hook) (struct sockaddr_storage *address, int addrlen);
-typedef void (*tiocgwinsz_hook) (struct winsize *winsize);
+typedef void (*tiocgwinsz_hook) (char *name, struct winsize *winsize);
 
 struct honeypot_hooks_s {
   proc_pid_readdir_hook in_proc_pid_readdir;

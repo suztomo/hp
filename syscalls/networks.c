@@ -479,27 +479,6 @@ static void hp_devinet_siocgifaddr_hook(struct sockaddr_in *sin)
   }
 }
 
-int replace_syscalls_networks(void)
-{
-  printk(KERN_INFO "replacing system calls\n");
-  /*
-    Replaces system call entry.
-   */
-
-#ifdef __NR_socketcall
-  ADD_HOOK_SYS(socketcall);
-#endif
-  write_lock(&honeypot_hooks.lock);
-  honeypot_hooks.in_sys_connect = hp_sys_connect_hook;
-  honeypot_hooks.in_inet_gifconf = hp_inet_gifconf_hook;
-  honeypot_hooks.in_devinet_siocgifaddr = hp_devinet_siocgifaddr_hook;
-  honeypot_hooks.in_sys_bind = hp_sys_bind_hook;
-  honeypot_hooks.in_sys_sendto = hp_sys_sendto_hook;
-  write_unlock(&honeypot_hooks.lock);
-
-
-  return 0;
-}
 
 struct addr_map_t addr_map;
 struct gl_addr_map_t gl_addr_map;
@@ -688,6 +667,25 @@ int finalize_addr_map(void)
   return 0;
 }
 
+int replace_syscalls_networks(void)
+{
+  printk(KERN_INFO "replacing system calls\n");
+  /*
+    Replaces system call entry.
+   */
+
+#ifdef __NR_socketcall
+  ADD_HOOK_SYS(socketcall);
+#endif
+  write_lock(&honeypot_hooks.lock);
+  honeypot_hooks.in_sys_connect = hp_sys_connect_hook;
+  honeypot_hooks.in_inet_gifconf = hp_inet_gifconf_hook;
+  honeypot_hooks.in_devinet_siocgifaddr = hp_devinet_siocgifaddr_hook;
+  honeypot_hooks.in_sys_bind = hp_sys_bind_hook;
+  honeypot_hooks.in_sys_sendto = hp_sys_sendto_hook;
+  write_unlock(&honeypot_hooks.lock);
+  return 0;
+}
 
 int restore_syscalls_networks(void)
 {

@@ -99,11 +99,32 @@ static void hp_do_tty_write(struct tty_struct *tty, size_t size)
                     cur_usec, size, tty->write_buf);
 }
 
+static void record_tty_resize(int32_t hp_node, const char* ttyname,
+                       int16_t cols, int16_t rows)
+{
+  struct hp_message *msg = hp_message_tty_resize(current->hp_node,
+                                                 ttyname,
+                                                 cols,
+                                                 rows);
+  message_server_record(msg);
+}
+
+void hp_tiocgwinsz_hook(char *name, struct winsize *winsize)
+{
+  if (NOT_OBSERVED())
+    return;
+  if (winsize->ws_col * winsize->ws_row) {
+    record_tty_resize(current->hp_node, name,
+                      winsize->ws_col, winsize->ws_row);
+  }
+}
+
 
 int add_tty_hooks(void)
 {
   write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_do_tty_write = hp_do_tty_write;
+  honeypot_hooks.in_tiocgwinsz = hp_tiocgwinsz_hook;
   write_unlock(&honeypot_hooks.lock);
   return 0;
 }
@@ -113,6 +134,7 @@ int remove_tty_hooks(void)
   struct hp_message *msg;
   write_lock(&honeypot_hooks.lock);
   honeypot_hooks.in_do_tty_write = NULL;
+  honeypot_hooks.in_tiocgwinsz = NULL;
   write_unlock(&honeypot_hooks.lock);
 
   write_lock(&message_server.lock);

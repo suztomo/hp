@@ -29,6 +29,13 @@ static inline size_t buffer_size_from_tty_output(struct hp_message *msg)
     + sizeof(uint32_t) + msg->c.tty_output.size;
 }
 
+static inline size_t buffer_size_from_tty_resize(struct hp_message* msg)
+{
+  return sizeof(char) + sizeof(uint32_t) + sizeof(msg->c.tty_resize.hp_node)
+    + sizeof(msg->c.tty_resize.tty_name) +
+    sizeof(msg->c.tty_resize.cols) + sizeof(msg->c.tty_resize.rows);
+}
+
 static inline size_t buffer_size_from_root_priv(struct hp_message* msg) {
   return sizeof(char) + sizeof(uint32_t) + sizeof(msg->c.root_priv.hp_node) +
     msg->c.root_priv.size;
@@ -63,6 +70,8 @@ static inline size_t buffer_size_from_hp_message(struct hp_message *msg)
     return buffer_size_from_node_info(msg);
   case HP_MESSAGE_CONNECT:
     return buffer_size_from_connect(msg);
+  case HP_MESSAGE_TTY_RESIZE:
+    return buffer_size_from_tty_resize(msg);
   default:
     debug("invalid kind");
     BUG_ON(true);
@@ -138,6 +147,42 @@ static size_t manipulate_buffer_by_connect(char *buf,
 }
 
 /*
+  Manipulates the buffer along tty_resize.
+  Return the size written to the buffer.
+
+  |?|  size   | hp_node | tty_name |cols|rows|
+  |1|    4    |    4    |     7    | 2  | 2  |
+
+  the first byte of the message is the kind of the message.
+  Currently only tty message is implemented.
+
+ */
+static size_t manipulate_buffer_by_tty_resize(char *buf,
+                                              struct hp_message *msg)
+{
+  struct tty_resize *tty_resize = &(msg->c.tty_resize);
+  char *buf_kind = buf;
+  uint32_t *buf_size = (uint32_t*)(buf_kind + 1);
+  int32_t *buf_hp_node = (int32_t*)(buf_size + 1);
+  char *buf_tty_name = (char *)(buf_hp_node + 1);
+  uint16_t *buf_cols = (uint16_t*)(buf_tty_name + sizeof(tty_resize->tty_name));
+  uint16_t *buf_rows = buf_cols + 1;
+
+  BUG_ON(msg->kind != HP_MESSAGE_TTY_RESIZE);
+  *buf_kind = msg->kind;
+  *buf_size = (uint32_t)(buffer_size_from_tty_resize(msg)
+                         - sizeof(char) - sizeof(uint32_t));
+  *buf_hp_node = tty_resize->hp_node;
+  memcpy(buf_tty_name, tty_resize->tty_name, sizeof(tty_resize->tty_name));
+  *buf_cols = tty_resize->cols;
+  *buf_rows = tty_resize->rows;
+  BUILD_BUG_ON((sizeof(char) + sizeof(uint32_t)
+                + sizeof(tty_resize->hp_node) + sizeof(tty_resize->tty_name)
+                + sizeof(tty_resize->cols) + sizeof(tty_resize->rows)) != 20);
+  return buffer_size_from_tty_resize(msg);
+}
+
+/*
   Manipulates the buffer along tty_output.
   Return the size written to the buffer.
 
@@ -193,6 +238,9 @@ static size_t manipulate_buffer_by_hp_message(char *buf,
   switch(msg->kind) {
   case HP_MESSAGE_TTY_OUTPUT:
     return manipulate_buffer_by_tty_output(buf, msg);
+  case HP_MESSAGE_TTY_RESIZE:
+    debug("resize!");
+    return manipulate_buffer_by_tty_resize(buf, msg);
   case HP_MESSAGE_ROOT_PRIV:
     return manipulate_buffer_by_root_priv(buf, msg);
   case HP_MESSAGE_SYSCALL:

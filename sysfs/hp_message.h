@@ -18,8 +18,9 @@
 #define HP_MESSAGE_TTY_OUTPUT 1
 #define HP_MESSAGE_ROOT_PRIV  2
 #define HP_MESSAGE_SYSCALL    3
-#define HP_MESSAGE_NODE_INFO   4
+#define HP_MESSAGE_NODE_INFO  4
 #define HP_MESSAGE_CONNECT    5
+#define HP_MESSAGE_TTY_RESIZE 6
 
 
 /*
@@ -86,6 +87,13 @@ struct connect {
   /*  int duration; ? */
 };
 
+struct tty_resize {
+  int32_t hp_node;
+  char tty_name[TTY_NAME_LEN+1];
+  int16_t cols;
+  int16_t rows;
+};
+
 struct hp_message {
   struct list_head list;
   /* type of which message it contains
@@ -102,6 +110,7 @@ struct hp_message {
     struct syscall syscall;
     struct node_info node_info;
     struct connect connect;
+    struct tty_resize tty_resize;
   } c; // content
 };
 
@@ -131,6 +140,10 @@ extern struct hp_message *hp_message_node_info(int32_t hp_node,
 extern struct hp_message *hp_message_connect(int32_t to_node,
                                              const unsigned char addr[4],
                                              uint16_t port);
+extern struct hp_message *hp_message_tty_resize(int32_t hp_node,
+                                                const char *tty_name,
+                                                int16_t cols,
+                                                int16_t rows);
 extern void delete_hp_message(struct hp_message *msg);
 
 #endif

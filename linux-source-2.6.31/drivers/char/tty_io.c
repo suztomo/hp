@@ -1982,8 +1982,7 @@ static int tiocgwinsz(struct tty_struct *tty, struct winsize __user *arg)
 	int err;
 
 	mutex_lock(&tty->termios_mutex);
-    HONEYPOT_HOOK1(in_tiocgwinsz, &tty->winsize);
-    printk(KERN_DEBUG "tiocgwinsz");
+    HONEYPOT_HOOK2(in_tiocgwinsz, tty->name, &tty->winsize);
 	err = copy_to_user(arg, &tty->winsize, sizeof(*arg));
 	mutex_unlock(&tty->termios_mutex);
 
