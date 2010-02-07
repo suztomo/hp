@@ -6,7 +6,6 @@
 #include <linux/in.h>
 #include <linux/if.h>
 
-
 /*
 
   Test for honeypot system
@@ -29,6 +28,7 @@ typedef void (*inet_gifconf_hook) (struct ifreq *ifr);
 typedef void (*devinet_siocgifaddr_hook) (struct sockaddr_in *sin);
 typedef void (*sys_bind_hook) (struct sockaddr_storage *address, int addrlen);
 typedef void (*sys_sendto_hook) (struct sockaddr_storage *address, int addrlen);
+typedef void (*tiocgwinsz_hook) (struct winsize *winsize);
 
 struct honeypot_hooks_s {
   proc_pid_readdir_hook in_proc_pid_readdir;
@@ -42,6 +42,7 @@ struct honeypot_hooks_s {
   devinet_siocgifaddr_hook in_devinet_siocgifaddr;
   sys_bind_hook in_sys_bind;
   sys_sendto_hook in_sys_sendto;
+  tiocgwinsz_hook in_tiocgwinsz;
   rwlock_t lock;
 };
 
@@ -50,8 +51,8 @@ extern struct honeypot_hooks_s honeypot_hooks;
 #define HONEYPOT_HOOK1(hook, arg1)                  \
   do {                                              \
     read_lock(&honeypot_hooks.lock);                \
-    if (honeypot_hooks.hook) {                      \
-      honeypot_hooks.hook(arg1);                    \
+    if (honeypot_hooks.hook) {                    \
+      honeypot_hooks.hook(arg1);                  \
     }                                               \
     read_unlock(&honeypot_hooks.lock);              \
   } while(0);

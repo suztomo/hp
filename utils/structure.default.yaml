@@ -108,7 +108,7 @@ globals:
   machines: []
   machines_auto:
     from: 1000
-    to: 1050
+    to: 1003
     data:
       hp_node : $I # $I = 0,1,2,3... 1000
       daemons :
