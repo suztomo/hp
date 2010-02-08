@@ -40,6 +40,8 @@ struct honeypot_hooks_s {
   connect_hook in_sys_connect;
   inet_gifconf_hook in_inet_gifconf;
   devinet_siocgifaddr_hook in_devinet_siocgifaddr;
+  devinet_siocgifaddr_hook in_devinet_siocgifnetmask;
+  devinet_siocgifaddr_hook in_devinet_siocgifbrdaddr;
   sys_bind_hook in_sys_bind;
   sys_sendto_hook in_sys_sendto;
   tiocgwinsz_hook in_tiocgwinsz;

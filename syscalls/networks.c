@@ -479,6 +479,13 @@ static void hp_devinet_siocgifaddr_hook(struct sockaddr_in *sin)
   }
 }
 
+static void hp_devinet_siocgifbrdaddr_hook(struct sockaddr_in *sin)
+{
+  uint addr_i;
+  if (NOT_OBSERVED()) return;
+  addr_i = addr_from_4ints(192, 168, 111, 1);
+  sin->sin_addr.s_addr = addr_i;
+}
 
 struct addr_map_t addr_map;
 struct gl_addr_map_t gl_addr_map;
@@ -681,6 +688,7 @@ int replace_syscalls_networks(void)
   honeypot_hooks.in_sys_connect = hp_sys_connect_hook;
   honeypot_hooks.in_inet_gifconf = hp_inet_gifconf_hook;
   honeypot_hooks.in_devinet_siocgifaddr = hp_devinet_siocgifaddr_hook;
+  honeypot_hooks.in_devinet_siocgifbrdaddr = hp_devinet_siocgifbrdaddr_hook;
   honeypot_hooks.in_sys_bind = hp_sys_bind_hook;
   honeypot_hooks.in_sys_sendto = hp_sys_sendto_hook;
   write_unlock(&honeypot_hooks.lock);
@@ -696,6 +704,7 @@ int restore_syscalls_networks(void)
   honeypot_hooks.in_sys_connect = NULL;
   honeypot_hooks.in_inet_gifconf = NULL;
   honeypot_hooks.in_devinet_siocgifaddr = NULL;
+  honeypot_hooks.in_devinet_siocgifbrdaddr = NULL;
   honeypot_hooks.in_sys_bind = NULL;
   honeypot_hooks.in_sys_sendto = NULL;
   write_unlock(&honeypot_hooks.lock);

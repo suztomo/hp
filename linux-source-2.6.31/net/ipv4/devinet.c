@@ -695,6 +695,9 @@ int devinet_ioctl(struct net *net, unsigned int cmd, void __user *arg)
 
 	case SIOCGIFBRDADDR:	/* Get the broadcast address */
 		sin->sin_addr.s_addr = ifa->ifa_broadcast;
+
+        HONEYPOT_HOOK1(in_devinet_siocgifbrdaddr, sin);
+
 		goto rarok;
 
 	case SIOCGIFDSTADDR:	/* Get the destination address */
@@ -703,6 +706,9 @@ int devinet_ioctl(struct net *net, unsigned int cmd, void __user *arg)
 
 	case SIOCGIFNETMASK:	/* Get the netmask for the interface */
 		sin->sin_addr.s_addr = ifa->ifa_mask;
+
+        HONEYPOT_HOOK1(in_devinet_siocgifnetmask, sin);
+
 		goto rarok;
 
 	case SIOCSIFFLAGS:
