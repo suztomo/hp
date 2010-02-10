@@ -26,16 +26,16 @@ int main(int argc, char *argv[])
   int r;
   int sumdiff;
   struct timeval tv0, tv1;
+  gettimeofday(&tv0, NULL);
   for (i=0; i<CNUM; ++i) {
-    gettimeofday(&tv0, NULL);
     r = uname(&un);
-    gettimeofday(&tv1, NULL);
     if (r != 0) {
       perror("uname");
       break;
     }
-    sumdiff += tvdiff_usec(&tv0, &tv1);
   }
+  gettimeofday(&tv1, NULL);
+  sumdiff = tvdiff_usec(&tv0, &tv1);
   printf("  Sum diff: %d (usec) in %d loops\n", sumdiff, CNUM);
   printf("  Usec per uname: %0.3f (usec)\n", (double)sumdiff/CNUM);
   return 0;

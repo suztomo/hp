@@ -6,7 +6,7 @@ VDIR=/j/00001/home/suzuki/
 GCC=gcc
 
 all: $(T_OPEN) $(T_CONNECT) $(T_UNAME)
-	chmod 755 $(T_OPEN) $(T_CONNECT)
+	chmod 755 $(T_OPEN) $(T_CONNECT) $(T_UNAME)
 
 $(T_OPEN): $(T_OPEN).c
 	$(GCC) -Wall $@.c -o $@ -ggdb
@@ -25,3 +25,4 @@ run:
 	./$(T_CONNECT) 127.0.0.1 11111
 	./$(T_UNAME)
 	cp -r ./ $(VDIR)
+	rm ~/txt/*

@@ -3,7 +3,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#define CNUM 10000
+#define CNUM 1000
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -33,6 +33,7 @@ int main(int argc, char *argv[])
   unsigned short port;
   int d;
   int sumdiff;
+  int sockfds[CNUM];
   if (argc != 3) {
     printf("Specify address and port");
     return 1;
@@ -50,25 +51,31 @@ int main(int argc, char *argv[])
   serv.sin_family = PF_INET;
 
   for (i=0; i<CNUM; ++i) {
-    sockfd = socket(PF_INET, SOCK_STREAM, 0);
+    sockfd =  socket(PF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
       perror("socket");
       return 1;
     }
-    gettimeofday(&tv0, NULL);
+    sockfds[i] = sockfd;
+  }
+  gettimeofday(&tv0, NULL);
+  for (i=0; i<CNUM; ++i) {
+    sockfd = sockfds[i];
     d = connect(sockfd, (struct sockaddr*)&serv, sizeof(serv));
-    gettimeofday(&tv1, NULL);
-    sumdiff += tvdiff_usec(&tv0, &tv1);
-    close(sockfd);
     continue;
-
+    /*
     if (d != 0) {
       if (d != 111) { // connection refused
         printf("errno %d\n", errno);
         perror("connect");
         break;
       }
-    }
+      }*/
+  }
+  gettimeofday(&tv1, NULL);
+  sumdiff = tvdiff_usec(&tv0, &tv1);
+  for (i=0; i<CNUM; ++i) {
+    sockfd = sockfds[i];
     close(sockfd);
   }
   printf("  Sum diff: %d (usec) in %d loops\n", sumdiff, CNUM);
